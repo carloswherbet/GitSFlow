@@ -1,5 +1,5 @@
 require 'dotenv'
-Dotenv.load('sflow.env')
+Dotenv.load('./sflow.env')
 $GITLAB_PROJETO_ID = ENV['GITLAB_PROJETO_ID']
 $GITLAB_TOKEN = ENV['GITLAB_TOKEN']
 $GITLAB_URL_API = ENV['GITLAB_URL_API']
