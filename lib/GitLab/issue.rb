@@ -19,7 +19,7 @@ class GitLab::Issue
     
     # label = params.fetch(:label) || ''
     # assignee_id = params.fetch(:assignee_id) || ''
-    print "\n\n Create new GitLab issue \n\n".yellow
+    print "\n Create new GitLab issue \n\n".yellow
     url = "projects/#{$GITLAB_PROJETO_ID}/issues" 
     issue_json = GitLab.request_post(url, params)
     @iid = issue_json["iid"]
@@ -36,7 +36,7 @@ class GitLab::Issue
     
     # label = params.fetch(:label) || ''
     # assignee_id = params.fetch(:assignee_id) || ''
-    print "\n\nUpdate GitLab issue '#{@title}' \n\n".yellow
+    print "\nUpdate GitLab issue '#{@title}' \n\n".yellow
     url = "projects/#{$GITLAB_PROJETO_ID}/issues/#{@iid}" 
     GitLab.request_put(url, params)
     print "Issue updated with success:\n".green

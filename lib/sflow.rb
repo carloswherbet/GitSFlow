@@ -30,74 +30,46 @@ class SFlow
 
     end
   end
-
   def self.feature_start
     title = $PARAM2 == "" ? $PARAM1 : $PARAM2
-    p "feature_start #{$PARAM1} #{$PARAM2}"
-    Git.fetch "develop"
-    Git.checkout "develop"
-    Git.pull "develop"
     issue = GitLab::Issue.new(title: title, labels: ['Feature'])
     issue.create
-
     branch = "#{issue.iid}-feature/#{$PARAM1}"
-    description = "Default branch: #{branch}"
-    
-    issue.description = description
-    issue.update
-
-    Git.new_branch branch
-    Git.push branch
-
-    print "\nYou are on branch: #{branch}\n\n".yellow
+    self.start(branch, issue)
   end
 
-  def feature_finish
-    self.feature_reintegration
+  def self.bugfix_start
+    title = $PARAM2 == "" ? $PARAM1 : $PARAM2
+    issue = GitLab::Issue.new(title: title, labels: ['Bugfix'])
+    issue.create
+    branch = "#{issue.iid}-bugfix/#{$PARAM1}"
+    self.start(branch, issue)
+  end
+
+  def self.feature_finish
+    self.reintegration
   end
 
   def self.feature_reintegration
-    p "feature_reintegration #{$PARAM1} "
-    Git.fetch "develop"
-    Git.checkout "develop"
-    Git.pull "develop"
-    source_branch = $PARAM1
-    issue = GitLab::Issue.find_by_branch(source_branch)
-    # source_branch = "#{issue.iid}-feature/#{$PARAM1}"
-    source_branch = $PARAM1
-    # issue.move
-    mr = GitLab::MergeRequest.new(
-      source_branch: source_branch,
-      target_branch: 'develop',
-      title: 'Teste',
-      issue_iid: issue.iid
-      )
-    mr.create
-    issue.labels = (issue.obj_gitlab["labels"] + ["merge_request"]).uniq
-    issue.update
+    self.reintegration
+  end
+
+  def self.bugfix_reintegration
+    self.reintegration
+  end
+
+  def self.bugfix_finish
+    self.reintegration
   end
 
   def self.feature_code_review
-    p "feature_code_review #{$PARAM1} "
-    Git.fetch "develop"
-    Git.checkout "develop"
-    Git.pull "develop"
-    source_branch = $PARAM1
-    issue = GitLab::Issue.find_by_branch(source_branch)
-    # issue.move
-    mr = GitLab::MergeRequest.new(
-      source_branch: source_branch,
-      target_branch: 'develop',
-      title: 'Teste',
-      issue_iid: issue.iid
-      )
-    mr.create_code_review
-    issue.labels = (issue.obj_gitlab["labels"] + ['code_review']).uniq
-    issue.update
-
-
+    self.code_review()
   end
-  
+
+  def self.bugfix_code_review
+    self.code_review()
+  end
+
   def self.feature_staging
     p "feature_staging #{$PARAM1} #{$PARAM2}"
     p "TODO:".red
@@ -155,7 +127,8 @@ class SFlow
 
   def self.config_
     print "\n\---------- Configuration ---------- \n".light_blue
-    print "\n Add export in source file ~/.bashrc:\n\n"
+
+    print "\nIn your project create or update file .env with below lines:\n\n"
     print "export GITLAB_PROJETO_ID=#########\n".pink
     print "export GITLAB_TOKEN==#########\n".pink
     print "export GITLAB_URL_API==#########\n".pink
@@ -180,60 +153,105 @@ class SFlow
   end
 
   def self.help_
-binding.pry
     print "\n\n---------- Help ---------- \n".light_blue
     print "\ngit sflow help \n\n".light_blue
-    print "  git sflow feature start FEATURE_BRANCH DESCRIPTION\n".yellow
-    print "     git sflow feature start Ticket#9999 'Ticket#9999 Problema em...'\n"
-    # print "     -> Create branch FEATURE_BRANCH from develop\n".green
-    # print "     -> Create GitLab Issue with title DESCRIPTION \n".green
+    print "1 - git sflow feature start FEATURE DESCRIPTION \n".yellow
+    print "2 - git sflow feature [reintegration|finish] FEATURE_BRANCH\n".yellow
+    print "3 - git sflow feature codereview BRANCH\n".yellow
+    print "4 - git sflow feature staging SOURCE_BRANCH STAGING_BRANCH\n".yellow
+    print "5 - git sflow bugfix start BUGFIX DESCRIPTION\n".yellow
+    print "6 - git sflow bugfix [reintegration|finish] BUGFIX_BRANCH\n".yellow
+    print "7 - git sflow bugfix codereview BUGFIX_BRANCH\n".yellow
+    print "8 - git sflow hotfix start HOTFIX DESCRIPTION\n".yellow
+    print "9 - git sflow hotfix [reintegration|finish] HOTFIX_BRANCH\n".yellow
+
+    choice = -1
+    question = "Choice a number for show a example or 0 for exit:\n\n".light_blue
+    print question
+    choice = STDIN.gets.chomp
+    print ""
+    case choice
+    when '1'
+      print "-> git sflow feature start Ticket#9999 'Ticket#9999 Problema em...'\n\n"
+    when '2'
+      print "-> git sflow feature reintegration 11-feature/Ticket#9999\n\n"
+    when '3'
+      print "-> git sflow feature codereview 11-feature/Ticket#9999\n\n"
+    when '4'
+      print "-> git sflow feature staging Ticket#9999 homologacao\n\n"
+    when '5'
+      print "-> git sflow bugfix start Ticket#9999 'Ticket#9999 Problema em...'\n\n"
+    when '6'
+      print "-> git sflow bugfix finish 12-bugfix/Ticket#9999'\n\n"
+    when '7'
+      print "-> git sflow bugfix codereview 12-bugfix/Ticket#9999\n"
+    when '8'
+      print "-> git sflow hotfix start Ticket#9999 'Ticket#9999 Problema em...'\n\n"
+    when '9'
+      print "-> git sflow hotfix reintegration Ticket#9999'\n\n"
+    when '0'
+    else
+    end
+    print "See you soon!".green
     print "\n\n"
 
-    print "  git sflow feature reintegration BRANCH\n".yellow
-    print "     git sflow feature reintegration Ticket#9999\n"
-    # print "     -> Create Merge Request from BRANCH to branch develop\n".green
-    print "\n\n"
-    
-    print "  git sflow feature codereview BRANCH\n".yellow
-    print "     git sflow feature codereview Ticket#9999\n"
-    # print "     -> Create Merge Request like Working in Progress (WIP)\n".green
-    print "\n\n"
-    
-    print "  git sflow feature staging BRANCH_ORIGEN BRANCH_STAGING\n".yellow
-    print "     git sflow feature staging Ticket#9999 homologacao\n"
-    # print "     -> Reset branch BRANCH_STAGING with develop \n".green
-    # print "     -> Merge BRANCH_ORIGEN into BRANCH_STAGING\n".green
-    print "\n\n"
-
-
-    print "  git sflow hotfix start HOTFIX_BRANCH DESCRIPTION\n".yellow
-    print "     git sflow hotfix start Ticket#9999 'Ticket#9999 Problema em...'\n"
-    # print "     -> Create branch HOTFIX_BRANCH from master\n".green
-    # print "     -> Create GitLab Issue with title DESCRIPTION \n".green
-    print "\n\n"
-
-    print "  git sflow hotfix finish HOTFIX_BRANCH\n".yellow
-    print "     git sflow hotfix finish Ticket#9999'\n"
-    # print "     -> Merge branch HOTFIX_BRANCH into master\n".green
-    # print "     -> Merge branch HOTFIX_BRANCH into develop\n".green
-    # print "     -> Remove branch HOTFIX_BRANCH\n".green
-    print "\n\n"
-
-
-    print "  git sflow bugfix start BUGFIX_BRANCH DESCRIPTION\n".yellow
-    print "     git sflow bugfix start Ticket#9999 'Ticket#9999 Problema em...'\n"
-    # print "     -> Create branch BUGFIX_BRANCH from develop\n".green
-    # print "     -> Create GitLab Issue with title DESCRIPTION \n".green
-    print "\n\n"
-
-    print "  git sflow bugfix reintegration BUGFIX_BRANCH\n".yellow
-    print "     git sflow bugfix reintegration Ticket#9999'\n"
-    # print "     -> Merge Request branch BUGFIX_BRANCH into develop\n".green
-    print "\n\n"
-
-    print ":\n\n".light_blue
 
   end
 
+
+  
+  def self.reintegration
+    Git.fetch "develop"
+    Git.checkout "develop"
+    Git.pull "develop"
+    source_branch = $PARAM1
+    issue = GitLab::Issue.find_by_branch(source_branch)
+    # source_branch = "#{issue.iid}-feature/#{$PARAM1}"
+    source_branch = $PARAM1
+    # issue.move
+    mr = GitLab::MergeRequest.new(
+      source_branch: source_branch,
+      target_branch: 'develop',
+      title: 'Teste',
+      issue_iid: issue.iid
+      )
+    mr.create
+    issue.labels = (issue.obj_gitlab["labels"] + ["merge_request"]).uniq
+    issue.update
+  end
+
+
+  def self.start branch, issue
+    Git.fetch "develop"
+    Git.checkout "develop"
+    Git.pull "develop"
+
+    description = "Default branch: #{branch}"
+    
+    issue.description = description
+    issue.update
+
+    Git.new_branch branch
+    Git.push branch
+
+    print "\nYou are on branch: #{branch}\n\n".yellow
+  end
+
+  def self.code_review
+    Git.fetch "develop"
+    Git.checkout "develop"
+    Git.pull "develop"
+    source_branch = $PARAM1
+    issue = GitLab::Issue.find_by_branch(source_branch)
+    # issue.move
+    mr = GitLab::MergeRequest.new(
+      source_branch: source_branch,
+      target_branch: 'develop',
+      issue_iid: issue.iid
+      )
+    mr.create_code_review
+    issue.labels = (issue.obj_gitlab["labels"] + ['code_review']).uniq
+    issue.update
+  end
 end
 
