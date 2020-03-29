@@ -1,40 +1,46 @@
 class GitLab::MergeRequest
 
   @options = {}
-  attr_accessor :source_branch, :target_branch, :title, :options, :assignee_id, :labels, :issue_iid, :obj_gitlab
+  attr_accessor :source_branch, :target_branch, :title, :options, :assignee_id, :labels, :issue_iid, :obj_gitlab, :type
   @labels = []
   def initialize(params = {})
     @source_branch = params[:source_branch]
     @target_branch = params[:target_branch]
-    @title = params[:title]
-    @labels = params[:labels]
-    @issue_iid = params[:issue_iid]
-    @options = params[:options]
+    @title      = params[:title]
+    @labels     = params[:labels]
+    @issue_iid  = params[:issue_iid]
+    @type       = params[:type]
+    @options    = params[:options]
   end
 
   def create
     print "Create Merge Request: ".yellow
     print "#{@source_branch} into #{@target_branch}\n\n".green
-    users = GitLab::User.all
-    print "Users list:\n\n".yellow
-    print "----------------------------\n".blue
-    print "#{"0".ljust(10)} - Empty\n".blue
-    users.each do |user|
-      print "#{user['id'].to_s.ljust(10)} - #{user['name']}\n".blue
+    assignee_id = GitLab::User.me["id"]
+    if type != 'hotfix'
+      users = GitLab::User.all
+      print "Users list:\n\n".yellow
+      print "----------------------------\n".blue
+      print "#{"0".ljust(10)} - Empty\n".blue
+      users.each do |user|
+        print "#{user['id'].to_s.ljust(10)} - #{user['name']}\n".blue
+      end
+      print "----------------------------\n".blue
+      print "Choice user ID for assignee:\n".yellow
+      assignee_id = STDIN.gets.chomp
+      print "\n#{assignee_id}, "
+      print "ok!\n".green
     end
-    print "----------------------------\n".blue
-    print "Choice user ID for assignee:\n".yellow
-    assignee_id = STDIN.gets.chomp
-    print "\n#{assignee_id}, "
-    print "ok!\n".green
     
     url = "projects/#{$GITLAB_PROJETO_ID}/merge_requests" 
-    title = "##{@issue_iid} - Merge Request #{@source_branch} into #{@target_branch}"
+    title = "##{@issue_iid} - Reintegration #{@source_branch} into #{@target_branch}"
+    labels = ['merge_request']
+    labels << type if type
     @obj_gitlab = GitLab.request_post(url, {
       source_branch: @source_branch,
       target_branch: @target_branch,
       title: title,
-      labels: 'merge_request',
+      labels: labels.join(','),
       assignee_id: assignee_id.to_i
     })
     

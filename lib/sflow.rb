@@ -32,7 +32,7 @@ class SFlow
   end
   def self.feature_start
     title = $PARAM2 == "" ? $PARAM1 : $PARAM2
-    issue = GitLab::Issue.new(title: title, labels: ['Feature'])
+    issue = GitLab::Issue.new(title: title, labels: ['feature'])
     issue.create
     branch = "#{issue.iid}-feature/#{$PARAM1}"
     self.start(branch, issue)
@@ -40,26 +40,42 @@ class SFlow
 
   def self.bugfix_start
     title = $PARAM2 == "" ? $PARAM1 : $PARAM2
-    issue = GitLab::Issue.new(title: title, labels: ['Bugfix'])
+    issue = GitLab::Issue.new(title: title, labels: ['bugfix'])
     issue.create
     branch = "#{issue.iid}-bugfix/#{$PARAM1}"
     self.start(branch, issue)
   end
 
+  def self.hotfix_start
+    title = $PARAM2 == "" ? $PARAM1 : $PARAM2
+    issue = GitLab::Issue.new(title: title, labels: ['hotfix', 'production'])
+    issue.create
+    branch = "#{issue.iid}-hotfix/#{$PARAM1}"
+    self.start(branch, issue, "master")
+  end
+
   def self.feature_finish
-    self.reintegration
+    self.feature_reintegration
   end
 
   def self.feature_reintegration
-    self.reintegration
+    self.reintegration 'feature'
   end
 
   def self.bugfix_reintegration
-    self.reintegration
+    self.reintegration 'bugfix'
   end
 
   def self.bugfix_finish
-    self.reintegration
+    self.bugfix_reintegration
+  end
+
+  def self.hotfix_reintegration
+    self.reintegration 'hotfix'
+  end
+
+  def self.hotfix_finish
+    self.hotfix_reintegration
   end
 
   def self.feature_code_review
@@ -200,31 +216,52 @@ class SFlow
 
 
   
-  def self.reintegration
-    Git.fetch "develop"
-    Git.checkout "develop"
-    Git.pull "develop"
+  def self.reintegration type = "feature"
+    # Git.fetch ref_branch
+    # Git.checkout ref_branch
+    # Git.pull ref_branch
     source_branch = $PARAM1
     issue = GitLab::Issue.find_by_branch(source_branch)
-    # source_branch = "#{issue.iid}-feature/#{$PARAM1}"
     source_branch = $PARAM1
-    # issue.move
-    mr = GitLab::MergeRequest.new(
+    new_labels = []
+    if (type == 'hotfix')
+      mr_master = GitLab::MergeRequest.new(
       source_branch: source_branch,
-      target_branch: 'develop',
-      title: 'Teste',
-      issue_iid: issue.iid
+      target_branch: 'master',
+      issue_iid: issue.iid,
+      type: 'hotfix'
       )
-    mr.create
-    issue.labels = (issue.obj_gitlab["labels"] + ["merge_request"]).uniq
+      mr_master.create
+
+      mr = GitLab::MergeRequest.new(
+        source_branch: source_branch,
+        target_branch: 'develop',
+        issue_iid: issue.iid,
+        type: 'hotfix'
+      )
+      mr.create
+      
+    else
+      mr = GitLab::MergeRequest.new(
+        source_branch: source_branch,
+        target_branch: 'develop',
+        issue_iid: issue.iid
+      )
+      mr.create
+      
+      new_labels << 'merge_request'
+    end
+   
+    issue.labels = (issue.obj_gitlab["labels"] + new_labels).uniq
     issue.update
+    
   end
 
 
-  def self.start branch, issue
-    Git.fetch "develop"
-    Git.checkout "develop"
-    Git.pull "develop"
+  def self.start branch, issue, ref_branch = "develop"
+    Git.fetch ref_branch
+    Git.checkout ref_branch
+    Git.pull ref_branch
 
     description = "Default branch: #{branch}"
     

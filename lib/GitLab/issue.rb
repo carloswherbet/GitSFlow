@@ -58,4 +58,9 @@ class GitLab::Issue
     issue.obj_gitlab = issue_json
     issue
   end 
+
+  def self.all
+    url = "issues"
+    GitLab.request_get(url)
+  end
 end
