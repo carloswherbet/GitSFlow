@@ -1,12 +1,22 @@
 class GitLab::Issue 
   attr_accessor :title, :labels, :assignee_id, :description, :branch, :iid, :obj_gitlab, :status
-  @labels = []
+  @comments = [] 
+  @labels = [] 
+
+  def comments
+    @comments
+  end
+
+  def comments=obj
+    @comments << obj
+  end
 
   def initialize(params = {})
     @title = params[:title]
     @labels = params[:labels] || [] 
     @description = params[:description]
     @branch = params[:branch]
+    @comments = []
     @assignee_id = GitLab::User.me["id"]
   end
 
@@ -85,7 +95,6 @@ class GitLab::Issue
     GitLab.request_get(url)
   end
 
-
   def self.from_list(list_name)
     url = "projects/#{$GITLAB_PROJECT_ID}/issues?labels=#{list_name}&state=opened"
     issues = []
@@ -107,6 +116,12 @@ class GitLab::Issue
   def msg_changelog
     # a.description.match(/(\* \~changelog .*\n)+/).to_a
     description.match(/\* \~changelog .*\n?/).to_s.gsub('* ~changelog ', '') rescue nil
+  end
+
+  def add_comment note
+    comment = GitLab::Comment.new(issue_iid: @iid, body: note)
+    @comments << comment
+    comment.create
   end
 
   def set_data obj

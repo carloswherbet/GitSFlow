@@ -15,13 +15,14 @@ load 'Git/git.rb'
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.2.3"
+  VERSION = "0.3.0"
   $TYPE   = ARGV[0]
   $ACTION = ARGV[1]
   $PARAM1 = ARGV[2]
   $PARAM2 = ARGV[3..-1]&.join(' ')
 
   def self.call
+    binding.pry
     begin
       print "Loading...\n".yellow
       validates if !['config_', 'help_'].include? ("#{$TYPE}_#{$ACTION}")
@@ -366,7 +367,7 @@ class SFlow
     print "\n\n"
     print "git sflow help\n\n"
     print "git sflow config\n\n"
-    print "Sucesso!\n\n".green
+    print "GitSFlow installed with success!\n\n".green
     # self.help_
     # self.config_
 

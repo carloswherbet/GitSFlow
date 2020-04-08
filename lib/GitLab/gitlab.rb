@@ -4,7 +4,9 @@ module GitLab
   autoload :User, 'GitLab/user.rb'
   autoload :Issue, 'GitLab/issue.rb'
   autoload :MergeRequest, 'GitLab/merge_request.rb'
+  autoload :Comment, 'GitLab/comment.rb'
   autoload :List, 'GitLab/list.rb'
+
   def self.request_post url, params 
     request = "#{$GITLAB_URL_API}/#{url}" 
     uri = URI(request) 
