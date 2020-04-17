@@ -6,6 +6,7 @@ rescue LoadError
 end
 
 require 'net/http'
+
 require "open3"
 require 'uri'
 load 'config.rb'
@@ -16,9 +17,10 @@ load 'Git/git.rb'
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.4.0"
+  VERSION = "0.4.2"
   $TYPE   = ARGV[0]
   $ACTION = ARGV[1]
+
   $PARAM1 = ARGV[2]
   $PARAM2 = ARGV[3..-1]&.join(' ')
 
@@ -55,7 +57,7 @@ class SFlow
     issue = GitLab::Issue.new(title: title, labels: ['hotfix', 'production'])
     issue.create
     branch = "#{issue.iid}-hotfix/#{$PARAM1}"
-    self.start(branch, issue, "master")
+    self.start(branch, issue, $GIT_BRANCH_MASTER)
   end
 
   def self.feature_finish
@@ -309,7 +311,7 @@ class SFlow
     type =  issue_release.labels.include?('hotfix') ? 'hotfix' : nil
     mr_master = GitLab::MergeRequest.new(
       source_branch: issue_release.branch,
-      target_branch: 'master',
+      target_branch: $GIT_BRANCH_MASTER,
       issue_iid: issue_release.iid,
       title: "Reintegration release #{version}: #{issue_release.branch} into master",
       description: "Closes ##{issue_release.iid}",
