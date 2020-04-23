@@ -17,7 +17,7 @@ load 'Git/git.rb'
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.4.2"
+  VERSION = "0.4.3"
   $TYPE   = ARGV[0]
   $ACTION = ARGV[1]
 
@@ -107,7 +107,7 @@ class SFlow
     self.codereview()
   end
 
-  def bugfix_staging
+  def self.bugfix_staging
     self.feature_staging
   end
 
