@@ -1,5 +1,6 @@
 module Git
   def self.checkout branch
+    self.fetch branch
     print "checkout: ".yellow
     print "#{branch}\n\n".green
     system "git checkout #{branch}"
@@ -35,6 +36,12 @@ module Git
     print "Push: ".yellow
     print "#{branch}\n\n".green
     execute {"git push origin #{branch}"}
+  end
+
+  def self.push_force branch
+    print "Push --force: ".yellow
+    print "#{branch}\n\n".green
+    execute {"git push origin #{branch} -f"}
   end
 
   def self.log_last_changes branch

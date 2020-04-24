@@ -17,7 +17,7 @@ load 'Git/git.rb'
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.4.3"
+  VERSION = "0.4.4"
   $TYPE   = ARGV[0]
   $ACTION = ARGV[1]
 
@@ -108,55 +108,17 @@ class SFlow
   end
 
   def self.bugfix_staging
-    self.feature_staging
+    if (!$PARAM1.match(/\-bugfix\//))
+      raise "This branch is not a bugfix"
+    end
+    self.staging
   end
 
   def self.feature_staging
-    branch = $PARAM1
-    issue = GitLab::Issue.find_by_branch(branch)
-
-    print "Staging branches list:\n\n".yellow
-    print "----------------------------\n".blue
-    $GIT_BRANCHES_STAGING.each_with_index do |staging, index|
-      print "#{index} - #{staging}\n".blue
+    if (!$PARAM1.match(/\-feature\//))
+      raise "This branch is not a feature"
     end
-    print "----------------------------\n".blue
-    print "Choice number of target branch:\n".yellow
-    target_branch_id = STDIN.gets.chomp
-    print "\n#{target_branch_id}, "
-    target_branch = $GIT_BRANCHES_STAGING[target_branch_id.to_i]
-    if !$GIT_BRANCHES_STAGING.include?(target_branch)
-      raise "option invalid!"
-    end
-      print "ok!\n".green
-
-    
-    print "\nAttention: \n".yellow.bg_red
-    print "Do you want clean first the target branch or only merge?\n\n".yellow
-    print "----------------------------\n".blue
-    print "0 - Clean it first, then do merge #{branch} into #{target_branch}\n".blue
-    print "1 - Only Merge: Merge #{branch} into #{target_branch}\n".blue
-    print "----------------------------\n".blue
-    print "Choice number of target branch:\n".yellow
-    option_merge = STDIN.gets.chomp
-    print "\n#{option_merge}, "
-    print "ok!\n".green
-
-    if option_merge == "0"
-      Git.reset_hard branch, target_branch
-    elsif option_merge == "1"
-      Git.merge branch, target_branch
-    else
-      raise "Wrong choice"
-    end
-    new_labels = [target_branch, 'Staging']
-    remove_labels =  $GITLAB_LISTS
-    old_labels = issue.obj_gitlab["labels"]
-    old_labels.delete_if{|label| remove_labels.include? label} 
-    issue.labels = (old_labels + new_labels).uniq
-    issue.update
-
-    self.codereview
+    self.staging
   end
 
   def self.release_start
@@ -534,12 +496,8 @@ class SFlow
   end
 
   def self.start branch, issue, ref_branch = "develop"
-    Git.fetch ref_branch
     Git.checkout ref_branch
-    Git.pull ref_branch
-
     description = "* ~default_branch #{branch}"
-    
     issue.description = description
     issue.update
 
@@ -550,9 +508,7 @@ class SFlow
   end
 
   def self.codereview
-    Git.fetch "develop"
     Git.checkout "develop"
-    Git.pull "develop"
     source_branch = $PARAM1
     issue = GitLab::Issue.find_by_branch(source_branch)
     # issue.move
@@ -564,6 +520,57 @@ class SFlow
     mr.create_code_review
     issue.labels = (issue.obj_gitlab["labels"] + ['code_review']).uniq
     issue.update
+  end
+
+  def self.staging
+    branch = $PARAM1
+    issue = GitLab::Issue.find_by_branch(branch)
+
+    print "Staging branches list:\n\n".yellow
+    print "----------------------------\n".blue
+    $GIT_BRANCHES_STAGING.each_with_index do |staging, index|
+      print "#{index} - #{staging}\n".blue
+    end
+    print "----------------------------\n".blue
+    print "Choice number of target branch:\n".yellow
+    target_branch_id = STDIN.gets.chomp
+
+    print "\n#{target_branch_id}, "
+    target_branch = $GIT_BRANCHES_STAGING[target_branch_id.to_i]
+    if !$GIT_BRANCHES_STAGING.include?(target_branch)
+      raise "option invalid!"
+    end
+      print "ok!\n".green
+    
+    print "\nAttention: \n".yellow.bg_red
+    print "Do you want clean first the target branch or only merge?\n\n".yellow
+    print "----------------------------\n".blue
+    print "0 - Clean it first, then do merge #{branch} into #{target_branch}\n".blue
+    print "1 - Only Merge: Merge #{branch} into #{target_branch}\n".blue
+    print "----------------------------\n".blue
+    print "Choice number of target branch:\n".yellow
+    option_merge = STDIN.gets.chomp
+    print "\n#{option_merge}, "
+    print "ok!\n".green
+
+    if option_merge == "0"
+      Git.reset_hard branch, target_branch
+      Git.push_force target_branch
+    elsif option_merge == "1"
+      Git.merge branch, target_branch
+      Git.push target_branch
+    else
+      raise "Wrong choice"
+    end
+    
+    new_labels = [target_branch, 'Staging']
+    remove_labels =  $GITLAB_LISTS
+    old_labels = issue.obj_gitlab["labels"]
+    old_labels.delete_if{|label| remove_labels.include? label} 
+    issue.labels = (old_labels + new_labels).uniq
+    issue.update
+
+    self.codereview
   end
 end
 
