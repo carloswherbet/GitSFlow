@@ -87,7 +87,7 @@ class GitLab::Issue
       issue = GitLab::Issue.new
       issue.set_data issue_json
     else
-      raise "Issue not found #{branch}"
+      raise "Issue not found #{branch}. \nCheck if exist the label default_branch in the body description"
     end
   end 
 
