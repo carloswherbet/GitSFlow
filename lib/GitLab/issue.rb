@@ -96,6 +96,11 @@ class GitLab::Issue
     GitLab.request_get(url)
   end
 
+  def self.ping
+    url = "projects/#{$GITLAB_PROJECT_ID}/issues?"
+    issue_json = GitLab.request_get(url)&.first
+  end
+
   def self.from_list(list_name)
     url = "projects/#{$GITLAB_PROJECT_ID}/issues?labels=#{list_name}&state=opened"
     issues = []

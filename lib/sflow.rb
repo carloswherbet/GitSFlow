@@ -17,7 +17,7 @@ load 'Git/git.rb'
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.4.4"
+  VERSION = "0.5.0"
   $TYPE   = ARGV[0]
   $ACTION = ARGV[1]
 
@@ -389,7 +389,8 @@ class SFlow
     print "\n"
     print "#{e.message}".yellow.bg_red
     print "\n\n"
-    print "#{e.backtrace}".yellow.bg_red
+    e.backtrace.each { |line| print "#{line}\n"  }
+    
     print "\n\n"
   end
 
@@ -408,6 +409,9 @@ class SFlow
     branchs_validations = $GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER, $GIT_BRANCH_DEVELOP]
     Git.exist_branch?(branchs_validations.join(' ')) rescue raise "You need to create branches #{branchs_validations.join(', ')}"
 
+    GitLab::Issue.ping
+
+
   end
 
   def self.help_
@@ -423,9 +427,10 @@ class SFlow
     print "8 - git sflow bugfix staging BUGFIX_BRANCH\n".yellow
     print "9 - git sflow hotfix start HOTFIX DESCRIPTION\n".yellow
     print "10 - git sflow hotfix [reintegration|finish] HOTFIX_BRANCH\n".yellow
-    print "11 - git sflow release start RELEASE\n".yellow
-    print "12 - git sflow release finish RELEASE\n".yellow
-    print "13 - git sflow push origin BRANCH\n".yellow
+    print "11 - git sflow hotfix staging HOTFIX_BRANCH\n".yellow
+    print "12 - git sflow release start RELEASE\n".yellow
+    print "13 - git sflow release finish RELEASE\n".yellow
+    print "14 - git sflow push origin BRANCH\n".yellow
 
     choice = -1
     question = "Choice a number for show a example or 0 for exit:\n\n".light_blue
