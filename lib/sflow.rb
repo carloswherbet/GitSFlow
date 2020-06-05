@@ -107,6 +107,13 @@ class SFlow
     self.codereview()
   end
 
+  def self.hotfix_staging
+    if (!$PARAM1.match(/\-hotfix\//))
+      raise "This branch is not a hotfix"
+    end
+    self.staging
+  end
+
   def self.bugfix_staging
     if (!$PARAM1.match(/\-bugfix\//))
       raise "This branch is not a bugfix"
