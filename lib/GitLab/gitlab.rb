@@ -14,6 +14,8 @@ module GitLab
     req['PRIVATE-TOKEN'] = $GITLAB_TOKEN 
     req.set_form_data(params)
     res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) {|http| http.request(req) } 
+    check_authorized res
+    check_errors_404 res
     JSON.parse(res.body)
   end
 
@@ -24,6 +26,8 @@ module GitLab
     req['PRIVATE-TOKEN'] = $GITLAB_TOKEN 
     req.set_form_data(params)
     res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) {|http| http.request(req) } 
+    check_authorized res
+    check_errors_404 res
     JSON.parse(res.body)
   end
   
@@ -33,10 +37,22 @@ module GitLab
     req = Net::HTTP::Get.new(uri) 
     req['PRIVATE-TOKEN'] = $GITLAB_TOKEN
     res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) {|http| http.request(req) } 
+    check_authorized res
+    check_errors_404 res
     JSON.parse(res.body)
   end
 
+  def self.check_errors_404 res
+    if res.code == "404"
+      raise "Project: #{$GITLAB_PROJECT_ID} \n#{JSON.parse(res.body)['message']}"
+    end
+  end
 
+  def self.check_authorized res
+    if res.code == "401"
+      raise "Unauthorized. Check GITLAB_TOKEN and file .env"
+    end
+  end
 
   def self.create_labels
     url = "projects/#{$GITLAB_PROJECT_ID}/labels"
@@ -62,6 +78,5 @@ module GitLab
     end
 
   end
-
    
 end
