@@ -8,6 +8,7 @@ end
 require 'net/http'
 
 require "open3"
+require "date"
 require 'uri'
 load 'config.rb'
 load 'string.rb'
@@ -137,7 +138,7 @@ class SFlow
     issues_total = issues.size 
     
     if issues_total == 0
-      raise "Not exist issues ready for start release version" 
+      raise "Not exist ready issues for start release" 
     end
 
     issues_urgent = issues.select{|i| i.labels.include? 'urgent'}
@@ -147,7 +148,7 @@ class SFlow
     issue_release = GitLab::Issue.find_by(title: issue_title) rescue nil
     
     if issue_release
-      print "This issue already exists, do you want to continue using it? (y/n):".yellow.bg_red
+      print "This card was created previously. Do you want to continue using it? (y/n):".yellow.bg_red
       
       print"\n If you choose 'n', a new issue will be created!\n"
       print "\n"
@@ -198,13 +199,10 @@ class SFlow
         issues_urgent.each do |issue|
           print "  -> #{issue.title}\n"
         end
-  
         issues_urgent.each do |issue|
-  
           Git.merge(issue.branch, release_branch)
           changelogs << "* ~changelog #{issue.msg_changelog} \n"
           new_labels << 'hotfix'
-         
         end
         issues = issues_urgent
       when "1"
@@ -217,13 +215,15 @@ class SFlow
         issues.each do |issue|
           Git.merge(issue.branch, release_branch)
           changelogs << "* ~changelog #{issue.msg_changelog} \n"
-
         end
       else
         raise "option invalid!"
       end
       print "Changelog messages:\n\n".yellow
-      version_header = "Release version #{version}\n" 
+      d_split = $SFLOW_TEMPLATE_RELEASE_DATE_FORMAT.split('/')
+      date =  Date.today.strftime("%#{d_split[0]}/%#{d_split[1]}/%#{d_split[2]}")
+      version_header =  "#{$SFLOW_TEMPLATE_RELEASE.gsub("{version}", version).gsub("{date}",date)}\n"
+
       print version_header.blue
       msgs_changelog = []
       changelogs.each do |clog|
@@ -231,9 +231,10 @@ class SFlow
         msgs_changelog << msg_changelog
         print msg_changelog.light_blue
       end
+      msgs_changelog << "\n"
       print "\nSetting changelog message in CHANGELOG\n".yellow
       sleep 2
-     
+
       system('touch CHANGELOG')
       file_changelog = IO.read 'CHANGELOG'
       IO.write 'CHANGELOG', version_header + msgs_changelog.join('') + file_changelog
@@ -276,13 +277,12 @@ class SFlow
     Git.merge issue_release.branch, 'develop'
     Git.push 'develop'
 
-
     type =  issue_release.labels.include?('hotfix') ? 'hotfix' : nil
     mr_master = GitLab::MergeRequest.new(
       source_branch: issue_release.branch,
       target_branch: $GIT_BRANCH_MASTER,
       issue_iid: issue_release.iid,
-      title: "Reintegration release #{version}: #{issue_release.branch} into master",
+      title: "Reintegration release #{version}: #{issue_release.branch} into #{$GIT_BRANCH_MASTER}",
       description: "Closes ##{issue_release.iid}",
       type: type
       )
@@ -380,7 +380,9 @@ class SFlow
     print "GIT_BRANCH_MASTER=master\n".pink
     print "GIT_BRANCH_DEVELOP=develop\n".pink
     print "GIT_BRANCHES_STAGING=staging_1,staging_2\n".pink
-
+    print "SFLOW_TEMPLATE_RELEASE=Version {version} - {date}\n".pink
+    print "SFLOW_TEMPLATE_RELEASE_DATE_FORMAT=d/m/Y\n".pink
+    
   end
 
   def self.set_error(e)

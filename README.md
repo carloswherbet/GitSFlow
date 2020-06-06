@@ -46,6 +46,9 @@ GITLAB_NEXT_RELEASE_LIST=Next Release
 GIT_BRANCH_MASTER=master
 GIT_BRANCH_DEVELOP=develop
 GIT_BRANCHES_STAGING=staging_1,staging_2
+SFLOW_TEMPLATE_RELEASE=Version {version} - {date}
+SFLOW_TEMPLATE_RELEASE_DATE_FORMAT=Y/m/d
+    
 ```
 
 ## Usage
