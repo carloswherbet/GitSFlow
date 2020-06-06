@@ -565,14 +565,21 @@ class SFlow
     print "\n#{option_merge}, "
     print "ok!\n".green
 
-    if option_merge == "0"
+    if option_merge == '0'
+      issues_staging  = GitLab::Issue.from_list(target_branch).select{|i| i.branch != branch}
+      issues_staging.each do |i|
+        i.labels.delete(target_branch)
+        i.labels.delete('Staging')
+        i.labels.push('Doing')
+        i.update
+      end
       Git.reset_hard branch, target_branch
       Git.push_force target_branch
-    elsif option_merge == "1"
+    elsif option_merge == '1'
       Git.merge branch, target_branch
       Git.push target_branch
     else
-      raise "Wrong choice"
+      raise 'Wrong choice'
     end
     
     new_labels = [target_branch, 'Staging']
@@ -583,6 +590,7 @@ class SFlow
     issue.update
 
     self.codereview
+    Git.checkout(branch)
   end
 end
 
