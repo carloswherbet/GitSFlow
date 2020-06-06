@@ -1,6 +1,6 @@
 module Git
-  def self.checkout branch
-    self.fetch branch
+  def self.checkout(branch, options = :with_fetch)
+    fetch(branch) if options == :with_fetch
     print "checkout: ".yellow
     print "#{branch}\n\n".green
     system "git checkout #{branch}"
@@ -9,7 +9,7 @@ module Git
   
   def self.merge from, to
     # self.checkout(from)
-    self.checkout(to)
+    checkout(to, :local)
     print "Merge ".yellow
     print "#{from} ".green
     print "into ".yellow
