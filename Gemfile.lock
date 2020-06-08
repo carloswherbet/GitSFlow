@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitsflow (0.4.4)
+    gitsflow (0.5.0)
       dotenv (~> 2.7.5)
 
 GEM
