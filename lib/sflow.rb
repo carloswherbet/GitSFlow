@@ -457,14 +457,16 @@ class SFlow
     when '8'
       print "-> git sflow bugfix staging 12-bugfix/Ticket#9999\n"
     when '9'
-      print "-> git sflow hotfix start Ticket#9999 'Ticket#9999 Bug at production in...'\n\n"
+      print "-> git sflow hotfix start Ticket#9999 'Ticket#9999 Bug at production ...'\n\n"
     when '10'
-      print "-> git sflow hotfix reintegration Ticket#9999'\n\n"
+      print "-> git sflow hotfix reintegration 11-hotfix/Ticket#9999'\n\n"
     when '11'
-      print "-> git sflow release start v5.5.99'\n\n"
+      print "-> git sflow hotfix staging 11-hotfix/Ticket#9999'\n\n"
     when '12'
-      print "-> git sflow release finish v5.5.99'\n\n"
+      print "-> git sflow release start v9.9.99'\n\n"
     when '13'
+      print "-> git sflow release finish v9.9.99'\n\n"
+    when '14'
       print "-> git sflow push BRANCH\n\n"
     when '0'
     else
