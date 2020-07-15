@@ -14,7 +14,31 @@ module Git
     print "#{from} ".green
     print "into ".yellow
     print "#{to} \n\n".green
-    execute {"git pull origin #{from}"}
+    processs, stderr , stdout= Open3.popen3("git pull origin #{from}") do |i, o, stderr, wait_thr|
+      [wait_thr.value, stderr.read, o.read] 
+    end
+    if processs.success?
+      return stdout
+    else
+      print "Conflicts on merge!".yellow.bg_red
+      print "\n\nResolve conflicts and commit. \n"
+      print "After type '1' for to continue or '0' for abort\n".yellow
+      choice = STDIN.gets.chomp
+      print "\n#{choice}, "
+      print "ok!\n".green
+
+      case choice
+      when '1'
+        print "Continuing...\n\n"
+      else
+        print "Aborting merge...\n\n"
+        system ('git merge --abort')
+        raise 'Aborting...'
+      end
+
+    end
+
+    # execute {"git pull origin #{from}"}
   end
 
   def self.delete_branch branch
@@ -69,7 +93,6 @@ module Git
 
   def self.exist_branch? branch
     execute {"git fetch origin #{branch}"}
-
   end
     
 
@@ -77,13 +100,11 @@ module Git
 
   def self.execute
     processs, stderr , stdout= Open3.popen3(yield) do |i, o, stderr, wait_thr|
-        [wait_thr.value, stderr.read, o.read] 
+      [wait_thr.value, stderr.read, o.read] 
     end
     if processs.success?
       return stdout
-    else
-        raise "#{stderr}"
     end
+    raise "#{stderr}"
   end
-
 end
