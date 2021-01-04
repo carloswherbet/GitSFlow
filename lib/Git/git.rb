@@ -49,10 +49,9 @@ module Git
 
   def self.reset_hard from, to
     self.fetch from
-    self.fetch to
     self.checkout(to)
     print "Reset --hard:  #{to} is equal: ".yellow
-    print "#{from}\n".green
+    print "origin/#{from}\n".green
     system "git reset --hard origin/#{from}\n\n"
   end
   
@@ -80,7 +79,7 @@ module Git
 
   def self.fetch branch
     print "Fetch: ".yellow
-    print "#{branch}\n\n".green
+    print "origin/#{branch}\n\n".green
     system "git fetch origin #{branch}"
   end
 

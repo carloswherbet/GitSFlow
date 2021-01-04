@@ -124,6 +124,11 @@ class GitLab::Issue
     description.match(/\* \~changelog .*\n?/).to_s.gsub('* ~changelog ', '') rescue nil
   end
 
+  def list_tasks
+    # a.description.match(/(\* \~changelog .*\n)+/).to_a
+    description.match(/\* \~tasks .*\n?/).to_s.gsub('* ~tasks ', '') rescue nil
+  end
+
   def add_comment note
     comment = GitLab::Comment.new(issue_iid: @iid, body: note)
     @comments << comment

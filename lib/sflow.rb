@@ -18,7 +18,7 @@ load 'Git/git.rb'
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.5.0"
+  VERSION = "0.6.0"
   $TYPE   = ARGV[0]
   $ACTION = ARGV[1]
 
@@ -27,6 +27,7 @@ class SFlow
 
   def self.call
     begin
+      print "GitSflow #{VERSION}\n".green
       print "Loading...\n".yellow
       validates if !['config_', 'help_'].include? ("#{$TYPE}_#{$ACTION}")
       # 
@@ -243,17 +244,39 @@ class SFlow
       system("git commit -m 'update CHANGELOG version #{version}'")
       Git.push release_branch
 
-      issue_release.description = "#{changelogs.join("")}\n * #{issues.map{|i| "##{i.iid},"}.join(' ')}"
+      issue_release.description = "#{changelogs.join("")}\n"
       
       issue_release.labels = ['ready_to_deploy', 'Next Release']
       issue_release.set_default_branch(release_branch)
-      issue_release.update
+
+
+
+      print "\n\nTasks list:\n\n".yellow
+
+      tasks = []
+      issues.each do |issue|
+        tasks << "* ~tasks #{issue.list_tasks} \n"
+      end
+
+      tasks.each do |task|
+        task = "#{task.strip.chomp.gsub('* ~tasks ', '  - ')}\n"
+        print task.light_blue
+      end
+
+      
       issues.each do |issue|
         issue.labels  = (issue.labels + new_labels).uniq
         issue.close
       end
+
+      issue_release.description += "#{tasks.join("")}\n"
+      
       print "\nYou are on branch: #{release_branch}\n".yellow
       print "\nRelease #{version} created with success!\n\n".yellow
+      
+      issue_release.description += "* #{issues.map{|i| "##{i.iid},"}.join(' ')}"
+
+      issue_release.update
 
       
     rescue => exception
@@ -483,8 +506,10 @@ class SFlow
     # Git.pull ref_branch
     source_branch = $PARAM1
     issue = GitLab::Issue.find_by_branch(source_branch)
+
+    # Setting Changelog
     print "Title: #{issue.title}\n\n"
-    print "Changelog message:\n--> ".yellow
+    print "CHANGELOG message:\n--> ".yellow
     message_changelog = STDIN.gets.chomp
     print "\n ok!\n\n".green
     new_labels = []
@@ -507,6 +532,20 @@ class SFlow
     print "#{message_changelog}\n".green
     print "Moving issue to list: ".yellow 
     print "#{$GITLAB_NEXT_RELEASE_LIST}\n".green 
+
+    # Setting Tasks
+    print "\n\nIf there are any tasks to be run, list them below separated by spaces, otherwise press Enter:\n--> "
+    print "\n Tasks:\n--> ".yellow
+    tasks = STDIN.gets.chomp
+    print "\n ok!\n\n".green
+    if tasks != "" and tasks != nil
+      issue.description.gsub!(/\* \~tasks .*\n?/,'')
+      issue.description = "#{issue.description} \n* ~tasks #{tasks}"
+      print "Setting tasks: ".yellow
+    end
+    print "#{tasks}\n".green
+
+
     issue.update
     
   end
@@ -580,6 +619,7 @@ class SFlow
       Git.reset_hard branch, target_branch
       Git.push_force target_branch
     elsif option_merge == '1'
+      Git.reset_hard target_branch, target_branch
       Git.merge branch, target_branch
       Git.push target_branch
     else
