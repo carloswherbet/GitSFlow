@@ -9,14 +9,6 @@ GitSFlow is a tool that integrate Git custom commands with GitLab and it's inspi
 gem 'gitsflow',  group: :development
 ```
 
-1 - Add this line to your application's Gemfile:
-
-    $ bundle install
-    $ sflow install
-    -> It will install the git alias
-
-2 -  install it yourself as:
-
     $ gem install gitsflow
 
 And in your application's:
@@ -81,8 +73,6 @@ List of commands:
     $ git sflow uninstall
     or 
     $ sflow uninstall
-
-TODO: Write usage instructions here
 
 
 ## Get a GitLab Token

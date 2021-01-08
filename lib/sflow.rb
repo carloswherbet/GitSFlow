@@ -18,7 +18,7 @@ load 'Git/git.rb'
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.6.0"
+  VERSION = "0.6.1"
   $TYPE   = ARGV[0]
   $ACTION = ARGV[1]
 
@@ -255,21 +255,25 @@ class SFlow
 
       tasks = []
       issues.each do |issue|
-        tasks << "* ~tasks #{issue.list_tasks} \n"
+        if issue.description.match(/(\* \~tasks .*\n)+/)
+          tasks << "* ~tasks #{issue.list_tasks} \n"
+        end
       end
 
-      tasks.each do |task|
-        task = "#{task.strip.chomp.gsub('* ~tasks ', '  - ')}\n"
-        print task.light_blue
-      end
+      if tasks.size > 0 
+        new_labels << 'tasks'
 
+        tasks.each do |task|
+          task = "#{task.strip.chomp.gsub('* ~tasks ', '  - ')}\n"
+          print task.light_blue
+        end
+        issue_release.description += "#{tasks.join("")}\n"
+      end
       
       issues.each do |issue|
         issue.labels  = (issue.labels + new_labels).uniq
         issue.close
       end
-
-      issue_release.description += "#{tasks.join("")}\n"
       
       print "\nYou are on branch: #{release_branch}\n".yellow
       print "\nRelease #{version} created with success!\n\n".yellow
@@ -534,7 +538,7 @@ class SFlow
     print "#{$GITLAB_NEXT_RELEASE_LIST}\n".green 
 
     # Setting Tasks
-    print "\n\nIf there are any tasks to be run, list them below separated by spaces, otherwise press Enter:\n--> "
+    print "\n\nIf there are any tasks to be run, list them below separated by spaces, otherwise press Enter:\n"
     print "\n Tasks:\n--> ".yellow
     tasks = STDIN.gets.chomp
     print "\n ok!\n\n".green
