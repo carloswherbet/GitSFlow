@@ -255,7 +255,7 @@ class SFlow
 
       tasks = []
       issues.each do |issue|
-        if issue.description.match(/(\* \~tasks .*\n)+/)
+        if issue.description.match(/(\* \~tasks .*)+/)
           tasks << "* ~tasks #{issue.list_tasks} \n"
         end
       end
