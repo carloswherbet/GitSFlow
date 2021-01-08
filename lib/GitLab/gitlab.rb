@@ -66,6 +66,7 @@ module GitLab
       {name: 'bugfix', color: "#D9534F"},
       {name: 'changelog', color: "#0033CC"},
       {name: 'Staging', color: "#FAD8C7"},
+      {name: 'tasks', color: "#F0AD4E"},
       ]
     $GIT_BRANCHES_STAGING.each do |staging|
       params << {name: staging, color: '#FAD8C7'}
