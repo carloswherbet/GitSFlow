@@ -18,7 +18,7 @@ load 'Git/git.rb'
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.6.1"
+  VERSION = "0.6.2"
   $TYPE   = ARGV[0]
   $ACTION = ARGV[1]
 
@@ -29,6 +29,9 @@ class SFlow
     begin
       print "GitSflow #{VERSION}\n".green
       print "Loading...\n".yellow
+      git_branch = Git.execute { "git branch --show-current" }
+      print "\nYou are on branch:".yellow
+      print " #{git_branch}\n".green
       validates if !['config_', 'help_'].include? ("#{$TYPE}_#{$ACTION}")
       # 
       send("#{$TYPE}_#{$ACTION}")
@@ -463,7 +466,7 @@ class SFlow
     print "11 - git sflow hotfix staging HOTFIX_BRANCH\n".yellow
     print "12 - git sflow release start RELEASE\n".yellow
     print "13 - git sflow release finish RELEASE\n".yellow
-    print "14 - git sflow push origin BRANCH\n".yellow
+    print "14 - git sflow push origin BRANCH or git sflow push\n".yellow
 
     choice = -1
     question = "Choice a number for show a example or 0 for exit:\n\n".light_blue

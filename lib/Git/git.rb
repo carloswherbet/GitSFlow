@@ -3,7 +3,7 @@ module Git
     fetch(branch) if options == :with_fetch
     print "checkout: ".yellow
     print "#{branch}\n\n".green
-    system "git checkout #{branch}"
+    execute {"git checkout #{branch}"}
     self.pull branch
   end
   
@@ -92,6 +92,7 @@ module Git
 
   def self.exist_branch? branch
     execute {"git fetch origin #{branch}"}
+
   end
     
 
