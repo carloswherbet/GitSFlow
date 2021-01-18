@@ -371,9 +371,13 @@ class SFlow
 
   end
 
+  def self.push_
+    self.push_origin
+  end
 
   def self.push_origin
-    branch = $PARAM1
+    branch = !$PARAM1 ?  Git.execute { 'git branch --show-current' } : $PARAM1
+    branch.delete!("\n")
     log_messages = Git.log_last_changes branch
     issue = GitLab::Issue.find_by_branch branch
     Git.push branch 

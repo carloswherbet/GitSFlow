@@ -65,7 +65,7 @@ List of commands:
 11. git sflow hotfix staging HOTFIX_BRANCH
 12. git sflow release start RELEASE
 13. git sflow release finish RELEASE
-14. git sflow push origin BRANCH
+14. git sflow push origin BRANCH or git sflow push
 
 
 
