@@ -68,7 +68,7 @@ module Git
   end
 
   def self.log_last_changes branch
-    execute {"git log origin/#{branch}..HEAD --oneline --format='%ad - %B'"}
+    execute {"git log origin/#{branch}..HEAD --oneline --format=\"%ad - %B\""}
   end
 
   def self.pull branch
@@ -99,7 +99,7 @@ module Git
   private
 
   def self.execute
-    processs, stderr , stdout= Open3.popen3(yield) do |i, o, stderr, wait_thr|
+    processs, stderr , stdout= Open3.popen3(yield.encode('UTF-8')) do |i, o, stderr, wait_thr|
       [wait_thr.value, stderr.read, o.read] 
     end
     if processs.success?

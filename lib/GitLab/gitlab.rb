@@ -56,7 +56,7 @@ module GitLab
 
   def self.create_labels
     url = "projects/#{$GITLAB_PROJECT_ID}/labels"
-    params = [ 
+    params = [
       {name: 'feature', color: "#5CB85C"},
       {name: 'default_branch', color: "#34495E"},
       {name: 'version', color: "#34495E"},

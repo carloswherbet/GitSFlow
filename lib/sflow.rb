@@ -18,12 +18,12 @@ load 'Git/git.rb'
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.6.2"
-  $TYPE   = ARGV[0]
-  $ACTION = ARGV[1]
+  VERSION = "0.7.0.alfa"
+  $TYPE   = ARGV[0]&.encode("UTF-8")
+  $ACTION = ARGV[1]&.encode("UTF-8")
 
-  $PARAM1 = ARGV[2]
-  $PARAM2 = ARGV[3..-1]&.join(' ')
+  $PARAM1 = ARGV[2]&.encode("UTF-8")
+  $PARAM2 = ARGV[3..-1]&.join(' ')&.encode("UTF-8")
 
   def self.call
     begin
