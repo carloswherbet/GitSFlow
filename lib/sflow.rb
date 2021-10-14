@@ -18,7 +18,7 @@ load 'Git/git.rb'
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.7.0.alfa"
+  VERSION = "0.7.1.alfa"
   $TYPE   = ARGV[0]&.encode("UTF-8")
   $ACTION = ARGV[1]&.encode("UTF-8")
 
