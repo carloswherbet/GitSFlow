@@ -68,7 +68,7 @@ module Git
   end
 
   def self.log_last_changes branch
-    execute {"git log origin/#{branch}..HEAD --oneline --format=\"%ad - %B\""}
+    execute {%{git log origin/#{branch}..HEAD --oneline --format="%ad - %B}}
   end
 
   def self.pull branch

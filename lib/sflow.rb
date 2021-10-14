@@ -244,7 +244,7 @@ class SFlow
       IO.write 'CHANGELOG', version_header + msgs_changelog.join('') + file_changelog
         
       system('git add CHANGELOG')
-      system("git commit -m 'update CHANGELOG version #{version}'")
+      system(%{git commit -m "update CHANGELOG version #{version}"})
       Git.push release_branch
 
       issue_release.description = "#{changelogs.join("")}\n"
@@ -321,7 +321,7 @@ class SFlow
     # end
     # mr_develop = GitLab::MergeRequest.new(
     #   source_branch: issue_release.branch,
-    #   target_branch: 'develop',
+    #   target_branch: $GIT_BRANCH_DEVELOP,
     #   issue_iid: issue_release.iid,
     #   title: "##{issue_release.iid} - #{version} - Reintegration  #{issue_release.branch} into develop",
     #   type: 'hotfix'
@@ -362,7 +362,7 @@ class SFlow
     print " (instaling...) \r".yellow
     GitLab.create_labels
     sleep 2
-    system("git config --local alias.sflow '!sh -c \" sflow $1 $2 $3 $4\" - '")
+    system(%{git config --local alias.sflow \'!sh -c " sflow $1 $2 $3 $4" - \'})
     print "    \u{1F601}\  git sflow alias"
     print " (instaled) \u{2714}     ".green
     print "\n\n"
@@ -521,7 +521,7 @@ class SFlow
     # Setting Changelog
     print "Title: #{issue.title}\n\n"
     print "CHANGELOG message:\n--> ".yellow
-    message_changelog = STDIN.gets.chomp
+    message_changelog = STDIN.gets.chomp.to_s.encode('UTF-8')
     print "\n ok!\n\n".green
     new_labels = []
     if (type == 'hotfix')
@@ -574,13 +574,13 @@ class SFlow
   end
 
   def self.codereview
-    Git.checkout "develop"
+    Git.checkout $GIT_BRANCH_DEVELOP
     source_branch = $PARAM1
     issue = GitLab::Issue.find_by_branch(source_branch)
     # issue.move
     mr = GitLab::MergeRequest.new(
       source_branch: source_branch,
-      target_branch: 'develop',
+      target_branch: $GIT_BRANCH_DEVELOP,
       issue_iid: issue.iid
       )
     mr.create_code_review
