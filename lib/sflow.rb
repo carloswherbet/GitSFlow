@@ -175,7 +175,7 @@ class SFlow
     begin
 
       Git.delete_branch(release_branch)
-      Git.checkout 'develop'
+      Git.checkout $GIT_BRANCH_DEVELOP
       Git.new_branch release_branch
       
       print "Issue(s) title(s): \n".yellow
@@ -304,8 +304,8 @@ class SFlow
     release_branch = "-release/#{version}"
     issue_release = GitLab::Issue.find_by_branch(release_branch)
     
-    Git.merge issue_release.branch, 'develop'
-    Git.push 'develop'
+    Git.merge issue_release.branch, $GIT_BRANCH_DEVELOP
+    Git.push $GIT_BRANCH_DEVELOP
 
     type =  issue_release.labels.include?('hotfix') ? 'hotfix' : nil
     mr_master = GitLab::MergeRequest.new(
@@ -561,7 +561,7 @@ class SFlow
     
   end
 
-  def self.start branch, issue, ref_branch = "develop"
+  def self.start branch, issue, ref_branch = $GIT_BRANCH_DEVELOP
     Git.checkout ref_branch
     description = "* ~default_branch #{branch}"
     issue.description = description
