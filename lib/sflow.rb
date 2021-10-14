@@ -1,3 +1,4 @@
+
 #!/usr/bin/ruby
 begin
   require 'pry'
@@ -18,7 +19,7 @@ load 'Git/git.rb'
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.7.1.alfa"
+  VERSION = "0.7.2.alfa"
   $TYPE   = ARGV[0]&.encode("UTF-8")
   $ACTION = ARGV[1]&.encode("UTF-8")
 
@@ -240,9 +241,10 @@ class SFlow
       sleep 2
 
       system('touch CHANGELOG')
-      file_changelog = IO.read 'CHANGELOG'
-      IO.write 'CHANGELOG', version_header + msgs_changelog.join('') + file_changelog
-        
+
+      line = version_header + "  " + msgs_changelog.join('')
+      File.write("CHANGELOG",line + File.open('CHANGELOG').read.encode('UTF-8') , mode: "w")
+
       system('git add CHANGELOG')
       system(%{git commit -m "update CHANGELOG version #{version}"})
       Git.push release_branch
