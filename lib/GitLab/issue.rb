@@ -1,8 +1,11 @@
 
-class GitLab::Issue 
-  attr_accessor :title, :labels, :assignee_id, :description, :branch, :iid, :obj_gitlab, :status
-  @comments = [] 
-  @labels = [] 
+require 'tty_integration.rb'
+class GitLab::Issue
+  include TtyIntegration
+
+  attr_accessor :title, :labels, :assignee_id, :description, :branch, :iid, :obj_gitlab, :status, :web_url
+  @comments = []
+  @labels = []
 
   def comments
     @comments
@@ -34,12 +37,13 @@ class GitLab::Issue
     
     # label = params.fetch(:label) || ''
     # assignee_id = params.fetch(:assignee_id) || ''
-    print "\nCreate new GitLab issue \n\n".yellow
+    # print "\nCreate new GitLab issue \n\n".yellow
     url = "projects/#{$GITLAB_PROJECT_ID}/issues" 
     issue_json = GitLab.request_post(url, params)
     @iid = issue_json["iid"]
-    print "Issue created with success!\n".green
-    print "URL: #{issue_json["web_url"]}\n\n"
+    @web_url = issue_json["web_url"]
+    self
+    # success("Issue created with success!\nURL: #{issue_json["web_url"]}")
   end
 
   def close
@@ -63,10 +67,10 @@ class GitLab::Issue
     
     # label = params.fetch(:label) || ''
     # assignee_id = params.fetch(:assignee_id) || ''
-    print "\nUpdate GitLab issue\n\n".yellow
+    # print "\nUpdate GitLab issue\n\n".yellow
     url = "projects/#{$GITLAB_PROJECT_ID}/issues/#{@iid}" 
     GitLab.request_put(url, params)
-    print "Issue updated with success!\n".green
+    # prompt.say(pastel.cyan("\nIssue updated with success!"))
   end
 
   def self.find_by(search)

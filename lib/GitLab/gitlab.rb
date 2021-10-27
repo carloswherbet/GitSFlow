@@ -1,6 +1,7 @@
 require 'json'
-
+require 'tty_integration.rb'
 module GitLab
+  include TtyIntegration
   autoload :User, 'GitLab/user.rb'
   autoload :Issue, 'GitLab/issue.rb'
   autoload :MergeRequest, 'GitLab/merge_request.rb'

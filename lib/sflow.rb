@@ -5,137 +5,160 @@ begin
 rescue LoadError
   # Gem loads as it should
 end
+require 'i18n'
 
 require 'net/http'
-
+require "pastel"
 require "open3"
 require "date"
 require 'uri'
-load 'config.rb'
+require 'config'
+
+load 'tty_integration.rb'
 load 'string.rb'
 load 'GitLab/gitlab.rb'
 load 'Git/git.rb'
+load 'Utils/changelog.rb'
+load 'menu.rb'
+
+# require 'utils/putdotenv.rb'
 
 # require './lib/gitlab/issue.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
-  VERSION = "0.7.2.alfa"
-  $TYPE   = ARGV[0]&.encode("UTF-8")
-  $ACTION = ARGV[1]&.encode("UTF-8")
+  extend TtyIntegration
+  VERSION = "0.8.0"
+  # $TYPE   = ARGV[0]&.encode("UTF-8")
+  # $ACTION = ARGV[1]&.encode("UTF-8")
 
-  $PARAM1 = ARGV[2]&.encode("UTF-8")
-  $PARAM2 = ARGV[3..-1]&.join(' ')&.encode("UTF-8")
+  # branch_name = ARGV[2]&.encode("UTF-8")
+  # $PARAM2 = ARGV[3..-1]&.join(' ')&.encode("UTF-8")
 
   def self.call
     begin
-      print "GitSflow #{VERSION}\n".green
-      print "Loading...\n".yellow
-      git_branch = Git.execute { "git branch --show-current" }
-      print "\nYou are on branch:".yellow
-      print " #{git_branch}\n".green
-      validates if !['config_', 'help_'].include? ("#{$TYPE}_#{$ACTION}")
-      # 
-      send("#{$TYPE}_#{$ACTION}")
+      system('clear')
+      Config.init()
+      # prompt.ok("GitSflow #{VERSION}")
+      box = TTY::Box.frame  align: :center, width: TTY::Screen.width, height: 4, title:  {bottom_right: pastel.cyan("(v#{VERSION})")}  do
+        pastel.green("GitSflow")
+      end
+      print box
+      validates()
+      Menu.new.principal
     rescue => e
      set_error e
 
     end
   end
-  def self.feature_start
-    title = $PARAM2 == "" ? $PARAM1 : $PARAM2
+  def self.feature_start external_id_ref, branch_description
+    @@bar = bar("Processing ")
+    @@bar.start
+    2.times { sleep(0.2) ; @@bar.advance }
+    title = branch_description || external_id_ref
     issue = GitLab::Issue.new(title: title, labels: ['feature'])
     issue.create
-    branch = "#{issue.iid}-feature/#{$PARAM1}"
+    branch = "#{issue.iid}-feature/#{external_id_ref}"
     self.start(branch, issue)
   end
 
-
-  def self.bugfix_start
-    title = $PARAM2 == "" ? $PARAM1 : $PARAM2
+  def self.bugfix_start external_id_ref, branch_description
+    @@bar = bar("Processing ")
+    @@bar.start
+    2.times { sleep(0.2) ; @@bar.advance }
+    title = branch_description || external_id_ref
     issue = GitLab::Issue.new(title: title, labels: ['bugfix'])
     issue.create
-    branch = "#{issue.iid}-bugfix/#{$PARAM1}"
+    branch = "#{issue.iid}-bugfix/#{external_id_ref}"
     self.start(branch, issue)
   end
 
-  def self.hotfix_start
-    title = $PARAM2 == "" ? $PARAM1 : $PARAM2
+  def self.hotfix_start external_id_ref, branch_description
+    @@bar = bar("Processing ")
+    @@bar.start
+    2.times { sleep(0.2) ; @@bar.advance }
+    title = branch_description || external_id_ref
     issue = GitLab::Issue.new(title: title, labels: ['hotfix', 'production'])
     issue.create
-    branch = "#{issue.iid}-hotfix/#{$PARAM1}"
+    branch = "#{issue.iid}-hotfix/#{external_id_ref}"
     self.start(branch, issue, $GIT_BRANCH_MASTER)
   end
 
-  def self.feature_finish
-    self.feature_reintegration
+  def self.feature_finish branch_name
+    self.feature_reintegration branch_name
   end
 
-  def self.feature_reintegration
-    if (!$PARAM1.match(/\-feature\//))
+  def self.feature_reintegration branch_name
+    if (!branch_name.match(/\-feature\//))
       raise "This branch is not a feature"
     end
-    self.reintegration 'feature'
+    @@bar = bar("Processing ")
+    @@bar.start
+    self.reintegration 'feature', branch_name
   end
 
-  def self.bugfix_reintegration
-    if (!$PARAM1.match(/\-bugfix\//))
+  def self.bugfix_reintegration branch_name
+    if (!branch_name.match(/\-bugfix\//))
       raise "This branch is not a bugfix"
     end
-    self.reintegration 'bugfix'
+    @@bar = bar("Processing ")
+    @@bar.start
+    self.reintegration 'bugfix', branch_name
   end
 
-  def self.bugfix_finish
-    self.bugfix_reintegration
+  def self.bugfix_finish branch_name
+    self.bugfix_reintegration branch_name
   end
 
-  def self.hotfix_reintegration
-    if (!$PARAM1.match(/\-hotfix\//))
+  def self.hotfix_reintegration branch_name
+    if (!branch_name.match(/\-hotfix\//))
       raise "This branch is not a hotfix"
     end
-    self.reintegration 'hotfix'
+    @@bar = bar("Processing ")
+    @@bar.start
+    self.reintegration 'hotfix', branch_name
   end
 
-  def self.hotfix_finish
-    self.hotfix_reintegration
+  def self.hotfix_finish branch_name
+    self.hotfix_reintegration branch_name
   end
 
-  def self.feature_codereview
-    if (!$PARAM1.match(/\-feature\//))
+  def self.feature_codereview branch_name
+    if (!branch_name.match(/\-feature\//))
       raise "This branch is not a feature"
     end
-    self.codereview()
+    self.codereview(branch_name)
   end
 
-  def self.bugfix_codereview
-    if (!$PARAM1.match(/\-bugfix\//))
+  def self.bugfix_codereview branch_name
+    if (!branch_name.match(/\-bugfix\//))
       raise "This branch is not a bugfix"
     end
-    self.codereview()
+    self.codereview(branch_name)
   end
 
-  def self.hotfix_staging
-    if (!$PARAM1.match(/\-hotfix\//))
+  def self.hotfix_staging branch_name
+    if (!branch_name.match(/\-hotfix\//))
       raise "This branch is not a hotfix"
     end
-    self.staging
+    self.staging branch_name
   end
 
-  def self.bugfix_staging
-    if (!$PARAM1.match(/\-bugfix\//))
+  def self.bugfix_staging branch_name
+    if (!branch_name.match(/\-bugfix\//))
       raise "This branch is not a bugfix"
     end
-    self.staging
+    self.staging branch_name
   end
 
-  def self.feature_staging
-    if (!$PARAM1.match(/\-feature\//))
+  def self.feature_staging branch_name
+    if (!branch_name.match(/\-feature\//))
       raise "This branch is not a feature"
     end
-    self.staging
+    self.staging branch_name
   end
 
   def self.release_start
-    version = $PARAM1
+    version = branch_name
     if !version
       raise "param 'VERSION' not found"
     end
@@ -238,7 +261,7 @@ class SFlow
       end
       msgs_changelog << "\n"
       print "\nSetting changelog message in CHANGELOG\n".yellow
-      sleep 2
+      
 
       system('touch CHANGELOG')
 
@@ -297,7 +320,7 @@ class SFlow
   end
 
   def self.release_finish 
-    version = $PARAM1
+    version = branch_name
     if !version
       raise "param 'VERSION' not found"
     end
@@ -342,46 +365,13 @@ class SFlow
 
 
   end
-  
-
-  def self.uninstall_
-    puts "\n\Uninstall git alias\n\n".yellow
-    print "      \u{1F611}   git sflow alias"
-    print " (removing...) \r".yellow
-    sleep 2
-    system('git config --local --unset alias.sflow')
-    print "    \u{1F601}\  git sflow alias"
-    print " (removed) \u{2714}     ".green
-    print "\n\n"
-    print "Bye Bye"
-    print "\n\n"
-
-  end
-
-  def self.install_
-    puts "\n\nInstalling git alias\n\n".yellow
-    print "      \u{1F611}   git sflow alias"
-    print " (instaling...) \r".yellow
-    GitLab.create_labels
-    sleep 2
-    system(%{git config --local alias.sflow \'!sh -c " sflow $1 $2 $3 $4" - \'})
-    print "    \u{1F601}\  git sflow alias"
-    print " (instaled) \u{2714}     ".green
-    print "\n\n"
-    print "git sflow help\n\n"
-    print "git sflow config\n\n"
-    print "GitSFlow installed with success!\n\n".green
-    # self.help_
-    # self.config_
-
-  end
 
   def self.push_
     self.push_origin
   end
 
   def self.push_origin
-    branch = !$PARAM1 ?  Git.execute { 'git branch --show-current' } : $PARAM1
+    branch = !branch_name ?  Git.execute { 'git branch --show-current' } : branch_name
     branch.delete!("\n")
     log_messages = Git.log_last_changes branch
     issue = GitLab::Issue.find_by_branch branch
@@ -423,113 +413,74 @@ class SFlow
 
   def self.set_error(e)
     print "\n\n"
-    print "Error!".yellow.bg_red
-    print "\n"
-    print "#{e.message}".yellow.bg_red
-    print "\n\n"
-    e.backtrace.each { |line| print "#{line}\n"  }
+    print TTY::Box.error(e.message, border: :light)
     
-    print "\n\n"
+    # print "Error!".yellow.bg_red
+    # print "\n"
+    # print "#{e.message}".yellow.bg_red
+    # print "\n\n"
+    # e.backtrace.each { |line| print "#{line}\n"  }
+    
+    # print "\n\n"
   end
 
   def self.validates
-    print "Running validations... \n\n".yellow
-    if !$GITLAB_PROJECT_ID || !$GITLAB_TOKEN || !$GITLAB_URL_API || 
+    @@bar = bar
+    6.times {
+      sleep(0.2)
+      @@bar.advance
+    }
+    if !$GITLAB_PROJECT_ID || !$GITLAB_TOKEN || !$GITLAB_URL_API ||
       !$GIT_BRANCH_MASTER || !$GIT_BRANCH_DEVELOP  || !$GITLAB_LISTS || !$GITLAB_NEXT_RELEASE_LIST
-      print "Variables not configured\n".yellow
-      raise "Run `sflow config` for help"
+      @@bar.stop
+      Menu.new.setup_variables()
+      @@bar.finish
     end
 
-    if !$TYPE && !$ACTION 
-      print "Command invalid!\n".yellow
-      raise "Run `sflow help` for help"
+    begin
+      branchs_validations = $GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER, $GIT_BRANCH_DEVELOP]
+      Git.exist_branch?(branchs_validations.join(' '))
+    rescue => e
+      @@bar.stop
+      raise "You need to create branches #{branchs_validations.join(', ')}"
+      # Menu.new.setup_variables()
     end
-    branchs_validations = $GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER, $GIT_BRANCH_DEVELOP]
-    Git.exist_branch?(branchs_validations.join(' ')) rescue raise "You need to create branches #{branchs_validations.join(', ')}"
+    2.times {
+      sleep(0.2)
+      @@bar.advance
+    }
 
+    # Git.exist_branch?(branchs_validations.join(' ')) rescue raise "You need to create branches #{branchs_validations.join(', ')}"
+
+    2.times {
+      sleep(0.2)
+      @@bar.advance
+    }
     GitLab::Issue.ping
-
-
-  end
-
-  def self.help_
-    print "\n\n---------- Help ---------- \n".light_blue
-    print "\nsflow help\nor\ngit sflow help\n\n".light_blue
-    print "1 - git sflow feature start FEATURE DESCRIPTION \n".yellow
-    print "2 - git sflow feature [reintegration|finish] FEATURE_BRANCH\n".yellow
-    print "3 - git sflow feature codereview BRANCH\n".yellow
-    print "4 - git sflow feature staging SOURCE_BRANCH\n".yellow
-    print "5 - git sflow bugfix start BUGFIX DESCRIPTION\n".yellow
-    print "6 - git sflow bugfix [reintegration|finish] BUGFIX_BRANCH\n".yellow
-    print "7 - git sflow bugfix codereview BUGFIX_BRANCH\n".yellow
-    print "8 - git sflow bugfix staging BUGFIX_BRANCH\n".yellow
-    print "9 - git sflow hotfix start HOTFIX DESCRIPTION\n".yellow
-    print "10 - git sflow hotfix [reintegration|finish] HOTFIX_BRANCH\n".yellow
-    print "11 - git sflow hotfix staging HOTFIX_BRANCH\n".yellow
-    print "12 - git sflow release start RELEASE\n".yellow
-    print "13 - git sflow release finish RELEASE\n".yellow
-    print "14 - git sflow push origin BRANCH or git sflow push\n".yellow
-
-    choice = -1
-    question = "Choice a number for show a example or 0 for exit:\n\n".light_blue
-    print question
-    choice = STDIN.gets.chomp
-    print ""
-    case choice
-    when '1'
-      print "-> git sflow feature start Ticket#9999 'Ticket#9999 - Create new...'\n\n"
-    when '2'
-      print "-> git sflow feature reintegration 11-feature/Ticket#9999\n\n"
-    when '3'
-      print "-> git sflow feature codereview 11-feature/Ticket#9999\n\n"
-    when '4'
-      print "-> git sflow feature staging 11-feature/Ticket#9999\n\n"
-    when '5'
-      print "-> git sflow bugfix start Ticket#9999 'Ticket#9999 Bug ...'\n\n"
-    when '6'
-      print "-> git sflow bugfix finish 12-bugfix/Ticket#9999'\n\n"
-    when '7'
-      print "-> git sflow bugfix codereview 12-bugfix/Ticket#9999\n"
-    when '8'
-      print "-> git sflow bugfix staging 12-bugfix/Ticket#9999\n"
-    when '9'
-      print "-> git sflow hotfix start Ticket#9999 'Ticket#9999 Bug at production ...'\n\n"
-    when '10'
-      print "-> git sflow hotfix reintegration 11-hotfix/Ticket#9999'\n\n"
-    when '11'
-      print "-> git sflow hotfix staging 11-hotfix/Ticket#9999'\n\n"
-    when '12'
-      print "-> git sflow release start v9.9.99'\n\n"
-    when '13'
-      print "-> git sflow release finish v9.9.99'\n\n"
-    when '14'
-      print "-> git sflow push BRANCH\n\n"
-    when '0'
-    else
-    end
-    print "See you soon!".green
-    print "\n\n"
-
+    @@bar.finish
 
   end
 
-  def self.reintegration type = "feature"
+
+  def self.reintegration type = "feature", branch_name
+    
     # Git.fetch ref_branch
     # Git.checkout ref_branch
     # Git.pull ref_branch
-    source_branch = $PARAM1
+    source_branch = branch_name
     issue = GitLab::Issue.find_by_branch(source_branch)
-
+    2.times { sleep(0.2) ; @@bar.advance }
     # Setting Changelog
-    print "Title: #{issue.title}\n\n"
-    print "CHANGELOG message:\n--> ".yellow
-    message_changelog = STDIN.gets.chomp.to_s.encode('UTF-8')
-    print "\n ok!\n\n".green
+    # print "Title: #{issue.title}\n\n"
+    # print "CHANGELOG message:\n--> ".yellow
+    message_changelog = prompt.ask("Set message CHANGELOG:", require: true, default: issue.title)
+    # message_changelog = STDIN.gets.chomp.to_s.encode('UTF-8')
+    # print "\n ok!\n\n".green
     new_labels = []
     if (type == 'hotfix')
       !source_branch.match('hotfix') rescue raise "invalid branch!"
-      new_labels << 'hotfix'  
-      new_labels << 'urgent'  
+      new_labels << 'hotfix'
+      new_labels << 'urgent'
     else
       (!source_branch.match('feature') && !source_branch.match('bugfix'))  rescue  raise "invalid branch!"
     end
@@ -541,43 +492,34 @@ class SFlow
     issue.labels = (old_labels + new_labels).uniq
     issue.description.gsub!(/\* \~changelog .*\n?/,'')
     issue.description = "#{issue.description} \n* ~changelog #{message_changelog}"
-    print "Setting changelog: ".yellow
-    print "#{message_changelog}\n".green
-    print "Moving issue to list: ".yellow 
-    print "#{$GITLAB_NEXT_RELEASE_LIST}\n".green 
 
     # Setting Tasks
-    print "\n\nIf there are any tasks to be run, list them below separated by spaces, otherwise press Enter:\n"
-    print "\n Tasks:\n--> ".yellow
-    tasks = STDIN.gets.chomp
-    print "\n ok!\n\n".green
-    if tasks != "" and tasks != nil
-      issue.description.gsub!(/\* \~tasks .*\n?/,'')
-      issue.description = "#{issue.description} \n* ~tasks #{tasks}"
-      print "Setting tasks: ".yellow
-    end
-    print "#{tasks}\n".green
-
+    tasks = prompt.ask("Set tasks list (optional):")
 
     issue.update
-    
+    success("#{branch_name} was finished and transferred to #{$GITLAB_NEXT_RELEASE_LIST} with sucesss!")
   end
 
   def self.start branch, issue, ref_branch = $GIT_BRANCH_DEVELOP
+    2.times { sleep(0.2) ; @@bar.advance }
     Git.checkout ref_branch
     description = "* ~default_branch #{branch}"
     issue.description = description
     issue.update
-
+    2.times { sleep(0.2) ; @@bar.advance }
     Git.new_branch branch
     Git.push branch
 
-    print "\nYou are on branch: #{branch}\n\n".yellow
+    @@bar.finish
+    prompt.say(pastel.cyan("You are on branch: #{branch}"))
+    success("Issue created with success!\nURL: #{issue.web_url}")
+
+    # print "\nYou are on branch: #{branch}\n\n".yellow
   end
 
-  def self.codereview
+  def self.codereview branch_name
     Git.checkout $GIT_BRANCH_DEVELOP
-    source_branch = $PARAM1
+    source_branch = branch_name
     issue = GitLab::Issue.find_by_branch(source_branch)
     # issue.move
     mr = GitLab::MergeRequest.new(
@@ -590,38 +532,18 @@ class SFlow
     issue.update
   end
 
-  def self.staging
-    branch = $PARAM1
+  def self.staging branch_name
+    branch = branch_name
     issue = GitLab::Issue.find_by_branch(branch)
+    prompt.say(pastel.cyan("\nLet's go!"))
+    target_branch = prompt.select("\nChoose target branch", $GIT_BRANCHES_STAGING ,symbols: { marker: ">" }, filter: true)
 
-    print "Staging branches list:\n\n".yellow
-    print "----------------------------\n".blue
-    $GIT_BRANCHES_STAGING.each_with_index do |staging, index|
-      print "#{index} - #{staging}\n".blue
-    end
-    print "----------------------------\n".blue
-    print "Choice number of target branch:\n".yellow
-    target_branch_id = STDIN.gets.chomp
+    options = []
+    options << {name: 'Clean and Merge', value: :clear }
+    options << {name: 'Only Merge', value: :only_merge }
+    option_merge = prompt.select("\nChoose mode", options ,symbols: { marker: ">" }, filter: true)
 
-    print "\n#{target_branch_id}, "
-    target_branch = $GIT_BRANCHES_STAGING[target_branch_id.to_i]
-    if !$GIT_BRANCHES_STAGING.include?(target_branch)
-      raise "option invalid!"
-    end
-      print "ok!\n".green
-    
-    print "\nAttention: \n".yellow.bg_red
-    print "Do you want clean first the target branch or only merge?\n\n".yellow
-    print "----------------------------\n".blue
-    print "0 - Clean it first, then do merge #{branch} into #{target_branch}\n".blue
-    print "1 - Only Merge: Merge #{branch} into #{target_branch}\n".blue
-    print "----------------------------\n".blue
-    print "Choice number of target branch:\n".yellow
-    option_merge = STDIN.gets.chomp
-    print "\n#{option_merge}, "
-    print "ok!\n".green
-
-    if option_merge == '0'
+    if option_merge == :clear
       issues_staging  = GitLab::Issue.from_list(target_branch).select{|i| i.branch != branch}
       issues_staging.each do |i|
         i.labels.delete(target_branch)
@@ -631,7 +553,7 @@ class SFlow
       end
       Git.reset_hard branch, target_branch
       Git.push_force target_branch
-    elsif option_merge == '1'
+    elsif option_merge == :only_merge
       Git.reset_hard target_branch, target_branch
       Git.merge branch, target_branch
       Git.push target_branch
@@ -646,7 +568,7 @@ class SFlow
     issue.labels = (old_labels + new_labels).uniq
     issue.update
 
-    self.codereview
+    self.codereview branch_name
     Git.checkout(branch)
   end
 end
