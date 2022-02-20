@@ -7,18 +7,18 @@ class Menu
   def principal()
     prompt.say("\n")
 
-    result = prompt.select("\nWhat do you want?", symbols: { marker: ">" }, per_page: 10) do |menu|
-      menu.choice "START a new Branch", :start_branch
-      menu.choice "FINISH a Branch", :finish_branch
-      menu.choice "STAGING a Branch", :staging_branch
-      menu.choice "CODE REVIEW a Branch", :staging_branch
-      menu.choice "START a RELEASE", :start_release
-      menu.choice "FINISH a RELEASE", :finish_release
-      menu.choice "MOVE a Issue", :staging_branch, disabled: '(Coming Soon)'
-      menu.choice "List my Issues", :staging_branch, disabled: '(Coming Soon)'
+    result = prompt.select("\O que você gostaria de fazer?", symbols: { marker: ">" }, per_page: 10) do |menu|
+      menu.choice "INICIAR uma nova BRANCH", :start_branch
+      menu.choice "FINALIZAR uma BRANCH", :finish_branch
+      menu.choice "ENVIAR para HOMOLOGAÇÃO", :staging_branch
+      menu.choice "Fazer CODE REVIEW ", :codereview
+      menu.choice "INICIAR uma RELEASE", :release_start
+      menu.choice "FINALIZAR uma RELEASE", :release_finish
+    #  menu.choice "MOVE a Issue", :staging_branch, disabled: '(Coming Soon)'
+    #  menu.choice "List my Issues", :staging_branch, disabled: '(Coming Soon)'
       menu.choice "Config(.env)", :setup_variables
-      menu.choice "Help", 5
-      menu.choice "Exit", :exit
+    #  menu.choice "Help", 5
+      menu.choice "SAIR", :exit
     end
     self.send(result)
   end
@@ -31,9 +31,22 @@ class Menu
     config.filename = file
 
     begin
-      result = config.read(file).transform_keys(&:to_sym)
+      result_env = config.read(file).transform_keys(&:to_sym)
+      result = prompt.collect do
+        key(:GITLAB_PROJECT_ID).ask("GITLAB_PROJECT_ID:", required: true, default: result_env[:GITLAB_PROJECT_ID])
+        key(:GITLAB_TOKEN).mask("GITLAB_TOKEN:", required: true, echo: true, default: result_env[:GITLAB_TOKEN])
+        key(:GITLAB_URL_API).ask("GITLAB_URL_API:", required: true, default: result_env[:GITLAB_URL_API] || 'https://gitlab.com/api/v4')
+        key(:GITLAB_EMAIL).ask("GITLAB_EMAIL:", required: true, default: result_env[:GITLAB_EMAIL]) {|q| q.validate(/[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+/, "Invalid email address")}
+        key(:GITLAB_LISTS).ask("GITLAB_LISTS:", required: true, default:  result_env[:GITLAB_LISTS] || 'To Do,Doing,Next Release,Staging')
+        key(:GITLAB_NEXT_RELEASE_LIST).ask("GITLAB_NEXT_RELEASE_LIST:", required: true, default: result_env[:GITLAB_NEXT_RELEASE_LIST] || 'Next Release')
+        key(:GIT_BRANCH_MASTER).ask("GIT_BRANCH_MASTER:", required: true, default: result_env[:GIT_BRANCH_MASTER] || 'master')
+        key(:GIT_BRANCH_DEVELOP).ask("GIT_BRANCH_DEVELOP:", required: true, default: result_env[:GIT_BRANCH_DEVELOP] || 'developer')
+        key(:GIT_BRANCHES_STAGING).ask("GIT_BRANCHES_STAGING:", required: true, default: result_env[:GIT_BRANCHES_STAGING] || 'staging')
+        key(:SFLOW_TEMPLATE_RELEASE).ask("SFLOW_TEMPLATE_RELEASE:", required: true, default:  result_env[:SFLOW_TEMPLATE_RELEASE] || 'Version {version} - {date}')
+        key(:SFLOW_TEMPLATE_RELEASE_DATE_FORMAT).ask("SFLOW_TEMPLATE_RELEASE_DATE_FORMAT:", required: true, default: result_env['SFLOW_TEMPLATE_RELEASE_DATE_FORMAT'] || 'Y/m/d')
+      end
     rescue TTY::Config::ReadError => read_error
-      prompt.say(pastel.cyan("\n\nPlease set .env variables"))
+      prompt.say(pastel.cyan("\n\nPor favor configure as variáveis .env"))
       result = prompt.collect do
         key(:GITLAB_PROJECT_ID).ask("GITLAB_PROJECT_ID:", required: true, default: ENV['GITLAB_PROJECT_ID'])
         key(:GITLAB_TOKEN).mask("GITLAB_TOKEN:", required: true, echo: true, default: ENV['GITLAB_TOKEN'])
@@ -61,13 +74,13 @@ class Menu
       config.write(file, force: true, create: true)
 
       print ("\n")
-      success("Variables configured with success!\n#{file}")
+      success("Variáveis configuradas com sucesso!\n#{file}")
       
-      if prompt.yes?("Do you want see menu?")
+      if prompt.yes?("Vocẽ gostaria de voltar ao menu principal?")
         principal()
       end
 
-      prompt.say(pastel.cyan("See you soon!"))
+      prompt.say(pastel.cyan("Até logo!"))
     end
 
     $GITLAB_PROJECT_ID = result[:GITLAB_PROJECT_ID]
@@ -88,6 +101,20 @@ class Menu
 
   private
 
+  def codereview
+    result = choice_branch('codereview')
+    SFlow.send(:codereview, result[:branch_name])
+  end
+
+  def release_start
+    SFlow.send(:release_start)
+  end
+
+  def release_finish
+    result = choice_branch_release()
+
+    SFlow.send(:release_finish, result[:branch_name])
+  end
 
   def exit
     exit
@@ -104,26 +131,36 @@ class Menu
   end
 
   def start_branch
-    action =  prompt.select("Branch type?", symbols: { marker: ">" }) do |menu|
+    action =  prompt.select("Selecione o tipo de Branch:", symbols: { marker: ">" }) do |menu|
       menu.choice "Feature", :feature_start
       menu.choice "Bugfix", :bugfix_start
       menu.choice "Hotfix", :hotfix_start
     end
 
     result = prompt.collect do
-      key(:external_id_ref).ask("External code ref: [JiraIssueId, TicketOtrsID]:", required: true)
-      key(:branch_description).ask("Branch description:", required: true)
+      key(:external_id_ref).ask("Código de identificação da Branch, EX: [JiraIssueId, TicketOtrsID]:", required: true)
+      key(:branch_description).ask("Descrição da branch:", required: true)
     end
 
     SFlow.send(action, result[:external_id_ref], result[:branch_description])
   end
 
+  def choice_branch_release
+
+    branchs_list =  Git.execute { "git branch -r --format='%(refname)' --sort=-committerdate  | grep release" }
+    branchs_list = branchs_list.gsub('refs/remotes/origin/','').split("\n") - ($GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER, $GIT_BRANCH_DEVELOP])
+    branch_name = prompt.select("Selecione a Branch:", branchs_list ,symbols: { marker: ">" }, filter: true)
+    return {
+      branch_name: branch_name.delete("\n")
+    }
+  end
+
   def choice_branch type
     action = ''
     current_branch = Git.execute { "git branch --show-current" }
-    branch_origin = prompt.select("Choose branch?", symbols: { marker: ">" }) do |menu|
-      menu.choice "#{current_branch}(current)", :current
-      menu.choice "Other", :other_branch
+    branch_origin = prompt.select("Confirme a branch:", symbols: { marker: ">" }) do |menu|
+      menu.choice "#{current_branch}(Atual)", :current
+      menu.choice "Outra", :other_branch
     end
 
     case branch_origin
@@ -137,9 +174,9 @@ class Menu
         end
         branch_name = current_branch.delete("\n")
       when :other_branch
-        branchs_list =  Git.execute { "git branch -r --format='%(refname)'" }
+        branchs_list =  Git.execute { "git branch -r --format='%(refname)' --sort=-committerdate" }
         branchs_list = branchs_list.gsub('refs/remotes/origin/','').split("\n") - ($GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER, $GIT_BRANCH_DEVELOP])
-        branch_name = prompt.select("Branch type?", branchs_list ,symbols: { marker: ">" }, filter: true)
+        branch_name = prompt.select("Selecione a Branch:", branchs_list ,symbols: { marker: ">" }, filter: true)
         if branch_name.match(/\-feature\//)
           action = "feature_#{type}"
         elsif branch_name.match(/\-bugfix\//)
@@ -154,6 +191,5 @@ class Menu
     }
   end
 
-    
 
 end

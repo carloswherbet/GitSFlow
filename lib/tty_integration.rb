@@ -6,6 +6,7 @@ require 'tty-option'
 require 'tty-box'
 require 'tty-editor'
 require 'tty-file'
+require 'tty-table'
 module TtyIntegration
   def prompt
     TTY::Prompt.new(track_history: true, interrupt: :exit)
@@ -19,10 +20,13 @@ module TtyIntegration
     TTY::Command.new(printer: :null)
   end
 
-  def bar message =  "Loading validations "
+  def bar message =  "Realizando validações "
     TTY::ProgressBar.new( "#{message}[:bar]", incomplete: red, complete: green,total: 10)
   end
 
+  def table
+    TTY::Table
+  end
 
   def success message
     print TTY::Box.success(message, border: :light)

@@ -61,5 +61,8 @@ Gem::Specification.new do |s|
     s.add_development_dependency "tty-file", "~> 0.10.0"
     s.add_dependency  "tty-file", "~> 0.10.0"
 
+    s.add_development_dependency "tty-table", "~> 0.12.0"
+    s.add_dependency  "tty-table", "~> 0.12.0"
+
   end
   

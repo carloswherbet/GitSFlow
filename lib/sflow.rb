@@ -51,7 +51,7 @@ class SFlow
     end
   end
   def self.feature_start external_id_ref, branch_description
-    @@bar = bar("Processing ")
+    @@bar = bar("Processando ")
     @@bar.start
     2.times { sleep(0.2) ; @@bar.advance }
     title = branch_description || external_id_ref
@@ -62,7 +62,7 @@ class SFlow
   end
 
   def self.bugfix_start external_id_ref, branch_description
-    @@bar = bar("Processing ")
+    @@bar = bar("Processando ")
     @@bar.start
     2.times { sleep(0.2) ; @@bar.advance }
     title = branch_description || external_id_ref
@@ -73,7 +73,7 @@ class SFlow
   end
 
   def self.hotfix_start external_id_ref, branch_description
-    @@bar = bar("Processing ")
+    @@bar = bar("Processando ")
     @@bar.start
     2.times { sleep(0.2) ; @@bar.advance }
     title = branch_description || external_id_ref
@@ -89,18 +89,18 @@ class SFlow
 
   def self.feature_reintegration branch_name
     if (!branch_name.match(/\-feature\//))
-      raise "This branch is not a feature"
+      raise "A branch informada não é do tipo feature"
     end
-    @@bar = bar("Processing ")
+    @@bar = bar("Processando ")
     @@bar.start
     self.reintegration 'feature', branch_name
   end
 
   def self.bugfix_reintegration branch_name
     if (!branch_name.match(/\-bugfix\//))
-      raise "This branch is not a bugfix"
+      raise "A branch informada não é do tipo bugfix"
     end
-    @@bar = bar("Processing ")
+    @@bar = bar("Processando ")
     @@bar.start
     self.reintegration 'bugfix', branch_name
   end
@@ -111,9 +111,9 @@ class SFlow
 
   def self.hotfix_reintegration branch_name
     if (!branch_name.match(/\-hotfix\//))
-      raise "This branch is not a hotfix"
+      raise "A branch informada não é do tipo hotfix"
     end
-    @@bar = bar("Processing ")
+    @@bar = bar("Processando ")
     @@bar.start
     self.reintegration 'hotfix', branch_name
   end
@@ -124,63 +124,59 @@ class SFlow
 
   def self.feature_codereview branch_name
     if (!branch_name.match(/\-feature\//))
-      raise "This branch is not a feature"
+      raise "A branch informada não é do tipo feature"
     end
     self.codereview(branch_name)
   end
 
   def self.bugfix_codereview branch_name
     if (!branch_name.match(/\-bugfix\//))
-      raise "This branch is not a bugfix"
+      raise "A branch informada não é do tipo bugfix"
     end
     self.codereview(branch_name)
   end
 
   def self.hotfix_staging branch_name
     if (!branch_name.match(/\-hotfix\//))
-      raise "This branch is not a hotfix"
+      raise "A branch informada não é do tipo hotfix"
     end
     self.staging branch_name
   end
 
   def self.bugfix_staging branch_name
     if (!branch_name.match(/\-bugfix\//))
-      raise "This branch is not a bugfix"
+      raise "A branch informada não é do tipo bugfix"
     end
     self.staging branch_name
   end
 
   def self.feature_staging branch_name
     if (!branch_name.match(/\-feature\//))
-      raise "This branch is not a feature"
+      raise "A branch informada não é do tipo feature"
     end
     self.staging branch_name
   end
 
   def self.release_start
-    version = branch_name
+    version = prompt.ask("Por favor dígite o nº da versão:")
     if !version
-      raise "param 'VERSION' not found"
+      raise "parâmetro 'VERSION' não encontrado"
     end
     issues  = GitLab::Issue.from_list($GITLAB_NEXT_RELEASE_LIST).select{|i| !i.labels.include? 'ready_to_deploy'}
-    issues_total = issues.size 
-    
+    issues_total = issues.size
+
     if issues_total == 0
-      raise "Not exist ready issues for start release" 
+      raise "Não existem issues disponíveis para inciar uma nova Versão de Release"
     end
 
     issues_urgent = issues.select{|i| i.labels.include? 'urgent'}
     issues_urgent_total = issues_urgent.size
     issue_title = "Release version #{version}\n"
-    
+
     issue_release = GitLab::Issue.find_by(title: issue_title) rescue nil
-    
+
     if issue_release
-      print "This card was created previously. Do you want to continue using it? (y/n):".yellow.bg_red
-      
-      print"\n If you choose 'n', a new issue will be created!\n"
-      print "\n"
-      option = STDIN.gets.chomp
+      option = prompt.yes? "Já existem uma Issue com mesmo nome criada previamente. Se você quer reutilizar a issue digite Y, caso deseja criar uma nova, digite n? :".yellow.bg_red
     else
       option = 'n'
     end
@@ -194,39 +190,42 @@ class SFlow
     changelogs = []
 
     release_branch = "#{issue_release.iid}-release/#{version}"
-    print "Creating release version #{version}\n"
+    # print "Creating release version #{version}\n"
 
     begin
 
-      Git.delete_branch(release_branch)
+     # Git.delete_branch(release_branch)
       Git.checkout $GIT_BRANCH_DEVELOP
       Git.new_branch release_branch
-      
-      print "Issue(s) title(s): \n".yellow
-      issues.each do |issue|
-        print "  -> #{issue.title}\n"
+
+      prompt.say "\nIssues disponíveis para criar versão:"
+      header = [pastel.cyan('Issue'), pastel.cyan('Labels')]
+      prompt.say (
+        table.new(header,
+          issues.map do |i|
+            [i.title, i.labels.join(',')]
+          end, orientation: :vertical
+      ).render(:unicode))
+
+      # prompt.say pastel.yellow "Atenção!"
+
+      option = prompt.select("\nEscolha uma opção de Branch:", symbols: { marker: ">" }) do |menu|
+        menu.choice( "Somente as (#{issues_urgent_total}) issues de hotfix/urgent", "0" ) if issues_urgent_total > 0
+        menu.choice "Todas as (#{issues_total}) issues", "1"
       end
-      print "\n"
-      
-      # if issues_urgent_total > 0
-        print "Attention!".yellow.bg_red
-        print "\n\nChoose an option for merge:\n".yellow
-        print "----------------------------\n".blue
-        print "#{"0".ljust(10)} - Only #{issues_urgent_total} hotfix/urgent issues\n".blue if issues_urgent_total > 0
-        print "#{"1".ljust(10)} - All #{issues_total} issues\n".blue
-        print "----------------------------\n".blue
-        print "Choice a number:\n".yellow
-        option = STDIN.gets.chomp
-      # else
-      #   option = "1"
-      # end
-  
+
       case option
       when "0"
-        print "Issue(s) title(s): \n"
-        issues_urgent.each do |issue|
-          print "  -> #{issue.title}\n"
-        end
+        prompt.say "Título das Issues: \n"
+
+        # header = [pastel.cyan('Issues'), pastel.cyan('Labels')]
+        # prompt.say (
+        #   table.new(header,
+        #     issues_urgent.map do |i|
+        #       [i.title, i.labels.join(',')]
+        #     end
+        # ).render(:unicode))
+
         issues_urgent.each do |issue|
           Git.merge(issue.branch, release_branch)
           changelogs << "* ~changelog #{issue.msg_changelog} \n"
@@ -235,33 +234,48 @@ class SFlow
         issues = issues_urgent
       when "1"
         type = 'other'
-        print "Next release has total (#{issues_total}) issues.\n\n".yellow
-        print "Issue(s) title(s): \n".yellow
-        issues.each do |issue|
-          print "  -> #{issue.title}\n"
-        end
+        # promtp.say "Existem (#{issues_total}) issues disponíveis para Próxima Release.\n\n".yellow
+
+        # header = [pastel.cyan('Issues'), pastel.cyan('Labels')]
+        # prompt.say (
+        #   table.new(header,
+        #     issues.map do |i|
+        #       [i.title, i.labels.join(',')]
+        #     end
+        # ).render(:unicode))
         issues.each do |issue|
           Git.merge(issue.branch, release_branch)
           changelogs << "* ~changelog #{issue.msg_changelog} \n"
         end
       else
-        raise "option invalid!"
+        raise "Opção Inválida!"
       end
-      print "Changelog messages:\n\n".yellow
+      prompt.say pastel.bold "Mensagens incluida no change CHANGELOG:"
+
       d_split = $SFLOW_TEMPLATE_RELEASE_DATE_FORMAT.split('/')
       date =  Date.today.strftime("%#{d_split[0]}/%#{d_split[1]}/%#{d_split[2]}")
       version_header =  "#{$SFLOW_TEMPLATE_RELEASE.gsub("{version}", version).gsub("{date}",date)}\n"
 
-      print version_header.blue
+      # print version_header.blue
       msgs_changelog = []
       changelogs.each do |clog|
         msg_changelog = "#{clog.strip.chomp.gsub('* ~changelog ', '  - ')}\n"
         msgs_changelog << msg_changelog
-        print msg_changelog.light_blue
+        # print msg_changelog.light_blue
       end
       msgs_changelog << "\n"
-      print "\nSetting changelog message in CHANGELOG\n".yellow
-      
+
+      header = [pastel.cyan(version_header.delete("\n")) ]
+        prompt.say (
+          table.new(header,
+            [
+            msgs_changelog.map do |msg|
+              msg.delete("\n")
+            end
+          ]
+        ).render(:unicode))
+      # print "\nConfigurando mensagem de changelog no arquivo CHANGELOG\n".yellow
+
 
       system('touch CHANGELOG')
 
@@ -273,13 +287,9 @@ class SFlow
       Git.push release_branch
 
       issue_release.description = "#{changelogs.join("")}\n"
-      
+
       issue_release.labels = ['ready_to_deploy', 'Next Release']
       issue_release.set_default_branch(release_branch)
-
-
-
-      print "\n\nTasks list:\n\n".yellow
 
       tasks = []
       issues.each do |issue|
@@ -288,47 +298,55 @@ class SFlow
         end
       end
 
-      if tasks.size > 0 
+      if tasks.size > 0
+        prompt.say  pastel.bold "Lista de Tasks:".yellow
         new_labels << 'tasks'
 
-        tasks.each do |task|
-          task = "#{task.strip.chomp.gsub('* ~tasks ', '  - ')}\n"
-          print task.light_blue
-        end
+        header = [pastel.cyan('Tasks') ]
+        prompt.say (
+          table.new(header,
+            [
+              tasks.map do |task|
+                task.strip.chomp.gsub('* ~tasks ', '  - ').delete("\n")
+            end
+          ]
+        ).render(:unicode))
+        # tasks.each do |task|
+        #   task = "#{task.strip.chomp.gsub('* ~tasks ', '  - ')}\n"
+        #   print task.light_blue
+        # end
         issue_release.description += "#{tasks.join("")}\n"
       end
-      
+
       issues.each do |issue|
         issue.labels  = (issue.labels + new_labels).uniq
         issue.close
       end
-      
-      print "\nYou are on branch: #{release_branch}\n".yellow
-      print "\nRelease #{version} created with success!\n\n".yellow
-      
+
+      # print "\Você está na branch: #{release_branch}\n".yellow
+      success "Release #{version} criada com sucesso!"
+
       issue_release.description += "* #{issues.map{|i| "##{i.iid},"}.join(' ')}"
 
       issue_release.update
 
-      
+
     rescue => exception
       Git.delete_branch(release_branch)
 
       raise exception.message
     end
-   
+
   end
 
-  def self.release_finish 
+  def self.release_finish branch_name
     version = branch_name
-    if !version
-      raise "param 'VERSION' not found"
-    end
+    
     new_labels = []
 
     release_branch = "-release/#{version}"
     issue_release = GitLab::Issue.find_by_branch(release_branch)
-    
+
     Git.merge issue_release.branch, $GIT_BRANCH_DEVELOP
     Git.push $GIT_BRANCH_DEVELOP
 
@@ -342,7 +360,7 @@ class SFlow
       type: type
       )
     mr_master.create
-     
+
     # end
     # mr_develop = GitLab::MergeRequest.new(
     #   source_branch: issue_release.branch,
@@ -353,15 +371,15 @@ class SFlow
     # )
     # mr_develop.create
 
-  
+
 
     # remove_labels = [$GITLAB_NEXT_RELEASE_LIST]
     remove_labels = []
     old_labels = issue_release.obj_gitlab["labels"] + ['merge_request']
-    old_labels.delete_if{|label| remove_labels.include? label} 
+    old_labels.delete_if{|label| remove_labels.include? label}
     issue_release.labels = (old_labels + new_labels).uniq
     issue_release.update
-    print "\nRelease #{version} finished with success!\n\n".yellow
+    success("Release #{version} finalizada com sucesso!")
 
 
   end
@@ -375,7 +393,7 @@ class SFlow
     branch.delete!("\n")
     log_messages = Git.log_last_changes branch
     issue = GitLab::Issue.find_by_branch branch
-    Git.push branch 
+    Git.push branch
     if (log_messages != "")
       print "Send messages commit for issue\n".yellow
       issue.add_comment(log_messages)
@@ -383,7 +401,7 @@ class SFlow
 
     remove_labels = $GIT_BRANCHES_STAGING + ['Staging', $GITLAB_NEXT_RELEASE_LIST]
     old_labels = issue.obj_gitlab["labels"]
-    old_labels.delete_if{|label| remove_labels.include? label} 
+    old_labels.delete_if{|label| remove_labels.include? label}
 
     issue.labels = old_labels +  ['Doing']
     issue.update
@@ -408,19 +426,19 @@ class SFlow
     print "GIT_BRANCHES_STAGING=staging_1,staging_2\n".pink
     print "SFLOW_TEMPLATE_RELEASE=Version {version} - {date}\n".pink
     print "SFLOW_TEMPLATE_RELEASE_DATE_FORMAT=d/m/Y\n".pink
-    
+
   end
 
   def self.set_error(e)
     print "\n\n"
     print TTY::Box.error(e.message, border: :light)
-    
+
     # print "Error!".yellow.bg_red
     # print "\n"
     # print "#{e.message}".yellow.bg_red
     # print "\n\n"
     # e.backtrace.each { |line| print "#{line}\n"  }
-    
+
     # print "\n\n"
   end
 
@@ -442,7 +460,7 @@ class SFlow
       Git.exist_branch?(branchs_validations.join(' '))
     rescue => e
       @@bar.stop
-      raise "You need to create branches #{branchs_validations.join(', ')}"
+      raise "Você precisar criar as branchs: #{branchs_validations.join(', ')}"
       # Menu.new.setup_variables()
     end
     2.times {
@@ -463,7 +481,7 @@ class SFlow
 
 
   def self.reintegration type = "feature", branch_name
-    
+
     # Git.fetch ref_branch
     # Git.checkout ref_branch
     # Git.pull ref_branch
@@ -473,12 +491,13 @@ class SFlow
     # Setting Changelog
     # print "Title: #{issue.title}\n\n"
     # print "CHANGELOG message:\n--> ".yellow
-    message_changelog = prompt.ask("Set message CHANGELOG:", require: true, default: issue.title)
+    @@bar.finish
+    message_changelog = prompt.ask("Informe a mensagem de CHANGELOG:", require: true, default: issue.title)
     # message_changelog = STDIN.gets.chomp.to_s.encode('UTF-8')
     # print "\n ok!\n\n".green
     new_labels = []
     if (type == 'hotfix')
-      !source_branch.match('hotfix') rescue raise "invalid branch!"
+      !source_branch.match('hotfix') rescue raise "Branch inválida!"
       new_labels << 'hotfix'
       new_labels << 'urgent'
     else
@@ -488,16 +507,16 @@ class SFlow
     new_labels << 'changelog'
     new_labels << $GITLAB_NEXT_RELEASE_LIST
     old_labels = issue.obj_gitlab["labels"]
-    old_labels.delete_if{|label| remove_labels.include? label} 
+    old_labels.delete_if{|label| remove_labels.include? label}
     issue.labels = (old_labels + new_labels).uniq
     issue.description.gsub!(/\* \~changelog .*\n?/,'')
     issue.description = "#{issue.description} \n* ~changelog #{message_changelog}"
 
     # Setting Tasks
-    tasks = prompt.ask("Set tasks list (optional):")
+    tasks = prompt.ask("Informe a lista de scripts ou tasks (opcional):")
 
     issue.update
-    success("#{branch_name} was finished and transferred to #{$GITLAB_NEXT_RELEASE_LIST} with sucesss!")
+    success("#{branch_name} foi finalizada e transferida por #{$GITLAB_NEXT_RELEASE_LIST} com sucesso!")
   end
 
   def self.start branch, issue, ref_branch = $GIT_BRANCH_DEVELOP
@@ -511,8 +530,8 @@ class SFlow
     Git.push branch
 
     @@bar.finish
-    prompt.say(pastel.cyan("You are on branch: #{branch}"))
-    success("Issue created with success!\nURL: #{issue.web_url}")
+    prompt.say(pastel.cyan("Você está na branch: #{branch}"))
+    success("Issue criada com sucesso!\nURL: #{issue.web_url}")
 
     # print "\nYou are on branch: #{branch}\n\n".yellow
   end
@@ -535,15 +554,19 @@ class SFlow
   def self.staging branch_name
     branch = branch_name
     issue = GitLab::Issue.find_by_branch(branch)
-    prompt.say(pastel.cyan("\nLet's go!"))
-    target_branch = prompt.select("\nChoose target branch", $GIT_BRANCHES_STAGING ,symbols: { marker: ">" }, filter: true)
+    prompt.say(pastel.cyan("\nVamos lá!"))
+    target_branch = prompt.select("\nEscolha a branch de homologação:", $GIT_BRANCHES_STAGING ,symbols: { marker: ">" }, filter: true)
 
     options = []
-    options << {name: 'Clean and Merge', value: :clear }
-    options << {name: 'Only Merge', value: :only_merge }
-    option_merge = prompt.select("\nChoose mode", options ,symbols: { marker: ">" }, filter: true)
+    options << {name: 'Limpar primeiro a branch e depois fazer o merge', value: :clear }
+    options << {name: 'Somente fazer o merge', value: :only_merge }
+    option_merge = prompt.select("\nO que deseja fazer?:", options ,symbols: { marker: ">" }, filter: true)
+    @@bar = bar("Realizando merge da branch em homologação")
+    @@bar.start
+    2.times { sleep(0.2) ; @@bar.advance }
 
     if option_merge == :clear
+      2.times { sleep(0.2) ; @@bar.advance }
       issues_staging  = GitLab::Issue.from_list(target_branch).select{|i| i.branch != branch}
       issues_staging.each do |i|
         i.labels.delete(target_branch)
@@ -551,25 +574,33 @@ class SFlow
         i.labels.push('Doing')
         i.update
       end
+      @@bar.advance
       Git.reset_hard branch, target_branch
+      @@bar.advance
       Git.push_force target_branch
+
     elsif option_merge == :only_merge
       Git.reset_hard target_branch, target_branch
+      @@bar.advance
       Git.merge branch, target_branch
+      @@bar.advance
       Git.push target_branch
+      @@bar.advance
     else
-      raise 'Wrong choice'
+      @@bar.stop
+      raise 'Escolha inválida'
     end
-    
+
     new_labels = [target_branch, 'Staging']
     remove_labels =  $GITLAB_LISTS
     old_labels = issue.obj_gitlab["labels"]
-    old_labels.delete_if{|label| remove_labels.include? label} 
+    old_labels.delete_if{|label| remove_labels.include? label}
     issue.labels = (old_labels + new_labels).uniq
     issue.update
-
-    self.codereview branch_name
+    @@bar.finish
+    #self.codereview branch_name
     Git.checkout(branch)
+    success("Merge em homologação realizado com sucesso")
   end
 end
 

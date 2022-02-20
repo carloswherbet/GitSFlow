@@ -52,10 +52,10 @@ class GitLab::Issue
     params.merge!(state_event: 'close')
     params.merge!(description: @description.to_s)
     params.merge!(labels: @labels.join(','))
-    
+
     url = "projects/#{$GITLAB_PROJECT_ID}/issues/#{@iid}" 
     GitLab.request_put(url, params)
-    print "Issue '#{@title}' closed with success!\n".green
+    # print "Issue '#{@title}' closed with success!\n".green
   end
 
   def update
@@ -85,13 +85,13 @@ class GitLab::Issue
   end 
 
   def self.find_by_branch(branch)
-    url = "projects/#{$GITLAB_PROJECT_ID}/issues?search=#{branch}"
+    url = "projects/#{$GITLAB_PROJECT_ID}/issues?description='#{branch}'"
     issue_json = GitLab.request_get(url)[0]
     if issue_json
       issue = GitLab::Issue.new
       issue.set_data issue_json
     else
-      raise "Issue not found #{branch}. \nCheck if exist the label default_branch in the body description"
+      raise "Issue não encontrada #{branch}. \nVerifique se existe a label 'default_branch' na descrição da issue"
     end
   end 
 

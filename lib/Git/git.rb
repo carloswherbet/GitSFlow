@@ -6,7 +6,7 @@ module Git
     fetch(branch) if options == :with_fetch
     # prompt.say(pastel.yellow("[checkout] ") + pastel.green(branch))
     execute {"git checkout #{branch}"}
-    self.pull branch
+    self.pull branch  if options == :with_fetch
   end
   
   def self.merge from, to
@@ -16,12 +16,13 @@ module Git
     # prompt.say(pastel.green("#{from} "))
     # prompt.say(pastel.yellow("into "))
     # prompt.say(pastel.green("#{to} \n\n"))
+    result = cmd.run!("git pull origin #{from}")
 
-    processs, stderr , stdout= Open3.popen3("git pull origin #{from}") do |i, o, stderr, wait_thr|
-      [wait_thr.value, stderr.read, o.read] 
-    end
-    if processs.success?
-      return stdout
+    # processs, stderr , stdout= Open3.popen3("git pull origin #{from}") do |i, o, stderr, wait_thr|
+    #   [wait_thr.value, stderr.read, o.read] 
+    # end
+    if result.success?
+      return result.out
     else
       print "Conflicts on merge!".yellow.bg_red
       print "\n\nResolve conflicts and commit. \n"
