@@ -2,5 +2,5 @@
 
 lib = File.expand_path("../../lib", __FILE__)
 $LOAD_PATH.push(lib)
-load 'sflow.rb'
+load 'sflow/sflow.rb'
 SFlow.call()

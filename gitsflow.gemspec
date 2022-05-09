@@ -1,7 +1,6 @@
 lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.push(lib)
-require_relative "lib/sflow"
-
+require_relative "lib/sflow/version.rb"
 Gem::Specification.new do |s|
     s.name          = %q{gitsflow}
     s.version       = SFlow::VERSION

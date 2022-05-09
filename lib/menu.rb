@@ -1,5 +1,6 @@
 require 'sflow.rb'
 require 'Git/git.rb'
+require 'GitLab/gitlab.rb'
 require 'tty_integration.rb'
 class Menu
   include TtyIntegration
@@ -75,13 +76,13 @@ class Menu
 
       print ("\n")
       success("Variáveis configuradas com sucesso!\n#{file}")
-      
       if prompt.yes?("Vocẽ gostaria de voltar ao menu principal?")
         principal()
       end
-
       prompt.say(pastel.cyan("Até logo!"))
     end
+
+    GitLab.create_labels
 
     $GITLAB_PROJECT_ID = result[:GITLAB_PROJECT_ID]
     $GITLAB_TOKEN = result[:GITLAB_TOKEN]
@@ -117,7 +118,7 @@ class Menu
   end
 
   def exit
-    exit
+    return 0
   end
 
   def staging_branch
@@ -142,7 +143,7 @@ class Menu
       key(:branch_description).ask("Descrição da branch:", required: true)
     end
 
-    SFlow.send(action, result[:external_id_ref], result[:branch_description])
+    SFlow.send(action, result[:external_id_ref].strip, result[:branch_description].strip)
   end
 
   def choice_branch_release

@@ -19,6 +19,7 @@ load 'string.rb'
 load 'GitLab/gitlab.rb'
 load 'Git/git.rb'
 load 'Utils/changelog.rb'
+load 'sflow/version.rb'
 load 'menu.rb'
 
 # require 'utils/putdotenv.rb'
@@ -27,7 +28,7 @@ load 'menu.rb'
 # require './lib/gitlab/merge_request.rb'
 class SFlow
   extend TtyIntegration
-  VERSION = "0.8.0"
+  
   # $TYPE   = ARGV[0]&.encode("UTF-8")
   # $ACTION = ARGV[1]&.encode("UTF-8")
 
@@ -444,8 +445,9 @@ class SFlow
 
   def self.validates
     @@bar = bar
+
     6.times {
-      sleep(0.2)
+      # sleep(0.1)
       @@bar.advance
     }
     if !$GITLAB_PROJECT_ID || !$GITLAB_TOKEN || !$GITLAB_URL_API ||
@@ -464,14 +466,14 @@ class SFlow
       # Menu.new.setup_variables()
     end
     2.times {
-      sleep(0.2)
+      # sleep(0.1)
       @@bar.advance
     }
 
     # Git.exist_branch?(branchs_validations.join(' ')) rescue raise "You need to create branches #{branchs_validations.join(', ')}"
 
     2.times {
-      sleep(0.2)
+      # sleep(0.1)
       @@bar.advance
     }
     GitLab::Issue.ping
