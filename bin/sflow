@@ -3,4 +3,4 @@
 lib = File.expand_path("../../lib", __FILE__)
 $LOAD_PATH.push(lib)
 load 'sflow/sflow.rb'
-SFlow.call()
+SFlow::SFlow.call()

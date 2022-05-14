@@ -1,4 +1,4 @@
-require 'sflow.rb'
+require 'sflow/sflow.rb'
 require 'Git/git.rb'
 require 'GitLab/gitlab.rb'
 require 'tty_integration.rb'
@@ -75,7 +75,7 @@ class Menu
       config.write(file, force: true, create: true)
 
       print ("\n")
-      success("Variáveis configuradas com sucesso!\n#{file}")
+      success("Variáveis configuradas com sucesso!\n#{file.gsub(Dir.home, "~")}")
       if prompt.yes?("Vocẽ gostaria de voltar ao menu principal?")
         principal()
       end
@@ -104,17 +104,17 @@ class Menu
 
   def codereview
     result = choice_branch('codereview')
-    SFlow.send(:codereview, result[:branch_name])
+    SFlow::SFlow.send(:codereview, result[:branch_name])
   end
 
   def release_start
-    SFlow.send(:release_start)
+    SFlow::SFlow.send(:release_start)
   end
 
   def release_finish
     result = choice_branch_release()
 
-    SFlow.send(:release_finish, result[:branch_name])
+    SFlow::SFlow.send(:release_finish, result[:branch_name])
   end
 
   def exit
@@ -123,12 +123,12 @@ class Menu
 
   def staging_branch
     result = choice_branch('staging')
-    SFlow.send(result[:action], result[:branch_name])
+    SFlow::SFlow.send(result[:action], result[:branch_name])
   end
 
   def finish_branch
     result = choice_branch('finish')
-    SFlow.send(result[:action], result[:branch_name])
+    SFlow::SFlow.send(result[:action], result[:branch_name])
   end
 
   def start_branch
@@ -143,7 +143,7 @@ class Menu
       key(:branch_description).ask("Descrição da branch:", required: true)
     end
 
-    SFlow.send(action, result[:external_id_ref].strip, result[:branch_description].strip)
+    SFlow::SFlow.send(action, result[:external_id_ref].strip, result[:branch_description].strip)
   end
 
   def choice_branch_release
