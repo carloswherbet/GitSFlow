@@ -190,7 +190,7 @@ class Menu
 
   def choice_branch_release
     branchs_list = Git.execute { "git ls-remote --heads --refs  | awk '{print $2}'  | grep release" }
-    branchs_list = branchs_list.gsub('refs/remotes/origin/',
+    branchs_list = branchs_list.gsub('refs/heads/',
                                      '').split("\n") - ($GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER,
                                                                                  $GIT_BRANCH_DEVELOP])
     branch_name = prompt.select('Selecione a Branch:', branchs_list, symbols: { marker: '>' }, filter: true)
@@ -219,7 +219,7 @@ class Menu
       branch_name = current_branch.delete("\n")
     when :other_branch
       branchs_list = Git.execute { "git ls-remote --heads --refs  | awk '{print $2}'" }
-      branchs_list = branchs_list.gsub('refs/remotes/origin/',
+      branchs_list = branchs_list.gsub('refs/heads/',
                                        '').split("\n") - ($GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER,
                                                                                    $GIT_BRANCH_DEVELOP])
       branch_name = prompt.select('Selecione a Branch:', branchs_list, symbols: { marker: '>' }, filter: true)

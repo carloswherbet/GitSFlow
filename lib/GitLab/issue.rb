@@ -83,7 +83,7 @@ class GitLab::Issue
 
   def self.find_by_branch(branch)
     url = "projects/#{$GITLAB_PROJECT_ID}/issues?search='~default_branch #{branch}'"
-    issue_json = GitLab.request_get(url)[0]
+    issue_json = GitLab.request_get(URI::Generic::DEFAULT_PARSER.escape(url))[0]
     unless issue_json
       raise "Issue não encontrada #{branch}. \nVerifique se existe a label 'default_branch' na descrição da issue"
     end

@@ -599,6 +599,7 @@ module SFlow
       @@bar.finish
       # self.codereview branch_name
       Git.checkout(branch)
+      prompt.say "\n"
       success('Merge em homologação realizado com sucesso')
     end
   end
