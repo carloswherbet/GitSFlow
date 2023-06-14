@@ -47,7 +47,10 @@ class GitLab::MergeRequest
                                         title: @title,
                                         labels: labels.join(','),
                                         description: @description,
-                                        assignee_id: assignee_id.to_i
+                                        assignee_id: assignee_id.to_i,
+                                        squash: true,
+                                        squash_on_merge: true
+
                                       })
 
     prompt.say(pastel.cyan("Merge request criado com sucesso!\n\n"))
