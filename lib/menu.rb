@@ -25,13 +25,22 @@ class Menu
   end
 
   def setup_variables
+    system('clear')
     project_name = Git.execute do
       "git remote -v | head -n1 | awk '{print $2}' | sed -e 's,.*:\(.*/\)\?,,' -e 's/\.git$//'"
     end
     file = "#{Dir.home}/.config/gitsflow/#{project_name.gsub("\n", '')}/config.yml"
     config = TTY::Config.new
     config.filename = file
-
+    prompt.say("\n")
+    box = TTY::Box.frame align: :left, width: TTY::Screen.width, height: 12,
+                         title: { top_left: pastel.green('Olá, seja bem-vindo!') } do
+      pastel.green("\nVamos configurar o GitSFlow agora.\n\n") +
+        pastel.white("Essa informação será salva dentro da pasta home do seu usuário. Você não precisará mais do .env
+            \nSe você desejar apenas ver as configurações, tecle enter até o final ou acesse o conteudo do arquivo: #{file}\nEssa informação será salva dentro da pasta home do seu usuário. Você não precisará mais do .env")
+    end
+    print box
+    prompt.say(pastel.cyan('Agora, entre com as informações de configuração do projeto.'))
     begin
       result_env = config.read(file).transform_keys(&:to_sym)
       result = prompt.collect do
@@ -94,7 +103,10 @@ class Menu
     end
 
     print("\n")
-    success("Variáveis configuradas com sucesso!\n#{file.gsub(Dir.home, '~')}")
+    success('Variáveis configuradas com sucesso!')
+    prompt.say(pastel.cyan("\n"))
+    prompt.say(pastel.cyan(file.gsub(Dir.home, '~')))
+    prompt.say(pastel.cyan("\n\n"))
     principal if prompt.yes?('Vocẽ gostaria de voltar ao menu principal?')
     prompt.say(pastel.cyan('Até logo!'))
 

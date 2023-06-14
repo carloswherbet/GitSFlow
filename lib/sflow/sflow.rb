@@ -495,7 +495,7 @@ module SFlow
         parent_issue.description += "\n* finalizada: ##{issue_id}"
         parent_issue.update
 
-        success("\nFoi realizado o MERGE #{branch_name} \ncom a branch pai #{target_branch}.\n\nA branch #{branch_name} e issue associada foram fechadas.")
+        success("\nFoi realizado o MERGE da branch #{branch_name} \ncom a branch pai #{target_branch}.\n\nA branch #{branch_name} e issue associada foram fechadas.")
       else
 
         # Setting Changelog
