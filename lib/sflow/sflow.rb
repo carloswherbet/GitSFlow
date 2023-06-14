@@ -462,49 +462,81 @@ module SFlow
       # Git.pull ref_branch
 
       source_branch = branch_name
+      has_parent_branch = branch_name.match?(/-#\d*/)
+
       issue_id = branch_name.to_s.match(/^(\d*)-/).to_a.last
       issue = GitLab::Issue.find_by_id issue_id
+
       2.times do
         sleep(0.2)
         @@bar.advance
       end
-      # Setting Changelog
-      # print "Title: #{issue.title}\n\n"
-      # print "CHANGELOG message:\n--> ".yellow
-      @@bar.finish
-      message_changelog = prompt.ask('Informe a mensagem de CHANGELOG:', require: true, default: issue.title)
-      # message_changelog = STDIN.gets.chomp.to_s.encode('UTF-8')
-      # print "\n ok!\n\n".green
-      new_labels = []
-      if type == 'hotfix'
-        begin
-          !source_branch.match('hotfix')
-        rescue StandardError
-          raise 'Branch inválida!'
-        end
-        new_labels << 'hotfix'
-        new_labels << 'urgent'
+
+      if has_parent_branch
+
+        parent_issue_id = branch_name.match(/-#(\d*)/)[1]
+        parent_issue = GitLab::Issue.find_by_id parent_issue_id
+
+        branchs_list = Git.execute { "git ls-remote --heads --refs  | awk '{print $2}'" }
+        branchs_list = branchs_list.gsub('refs/heads/',
+                                         '').split("\n") - ($GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER,
+                                                                                     $GIT_BRANCH_DEVELOP])
+        parent_branch = branchs_list.detect { |i| i.match?(/^#{parent_issue_id}-*/) }
+        target_branch = parent_branch
+        Git.reset_hard target_branch, target_branch
+        @@bar.advance
+        Git.merge branch_name, target_branch
+        @@bar.advance
+        Git.push target_branch
+        @@bar.advance
+
+        issue.close
+
+        parent_issue.description += "\n* finalizada: ##{issue_id}"
+        parent_issue.update
+
+        success("\nFoi realizado o MERGE #{branch_name} \ncom a branch pai #{target_branch}.\n\nA branch #{branch_name} e issue associada foram fechadas.")
       else
-        begin
-          (!source_branch.match('feature') && !source_branch.match('bugfix'))
-        rescue StandardError
-          raise 'invalid branch!'
+
+        # Setting Changelog
+        # print "Title: #{issue.title}\n\n"
+        # print "CHANGELOG message:\n--> ".yellow
+        @@bar.finish
+        message_changelog = prompt.ask('Informe a mensagem de CHANGELOG:', require: true, default: issue.title)
+        # message_changelog = STDIN.gets.chomp.to_s.encode('UTF-8')
+        # print "\n ok!\n\n".green
+        new_labels = []
+        if type == 'hotfix'
+          begin
+            !source_branch.match('hotfix')
+          rescue StandardError
+            raise 'Branch inválida!'
+          end
+          new_labels << 'hotfix'
+          new_labels << 'urgent'
+        else
+          begin
+            (!source_branch.match('feature') && !source_branch.match('bugfix'))
+          rescue StandardError
+            raise 'invalid branch!'
+          end
         end
+        remove_labels = $GIT_BRANCHES_STAGING + $GITLAB_LISTS + ['Staging']
+        new_labels << 'changelog'
+        new_labels << $GITLAB_NEXT_RELEASE_LIST
+        old_labels = issue.obj_gitlab['labels']
+        old_labels.delete_if { |label| remove_labels.include? label }
+        issue.labels = (old_labels + new_labels).uniq
+        issue.description.gsub!(/\* ~changelog .*\n?/, '')
+        issue.description = "#{issue.description} \n* ~changelog #{message_changelog}"
+
+        # Setting Tasks
+        tasks = prompt.ask('Informe a lista de scripts ou tasks (opcional):')
+
+        issue.update
+        success("#{branch_name} foi finalizada e transferida por #{$GITLAB_NEXT_RELEASE_LIST} com sucesso!")
+
       end
-      remove_labels = $GIT_BRANCHES_STAGING + $GITLAB_LISTS + ['Staging']
-      new_labels << 'changelog'
-      new_labels << $GITLAB_NEXT_RELEASE_LIST
-      old_labels = issue.obj_gitlab['labels']
-      old_labels.delete_if { |label| remove_labels.include? label }
-      issue.labels = (old_labels + new_labels).uniq
-      issue.description.gsub!(/\* ~changelog .*\n?/, '')
-      issue.description = "#{issue.description} \n* ~changelog #{message_changelog}"
-
-      # Setting Tasks
-      tasks = prompt.ask('Informe a lista de scripts ou tasks (opcional):')
-
-      issue.update
-      success("#{branch_name} foi finalizada e transferida por #{$GITLAB_NEXT_RELEASE_LIST} com sucesso!")
     end
 
     def self.start(branch, issue, ref_branch = $GIT_BRANCH_DEVELOP, parent_branch_name)
