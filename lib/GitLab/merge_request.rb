@@ -94,7 +94,7 @@ class GitLab::MergeRequest
 
     return error(@obj_gitlab.dig('message').join('.')) if @obj_gitlab.has_key? 'message'
 
-    success('Code Review para Code Review criado com sucesso!')
+    success("Code Review criado com sucesso!\n\n")
 
     # print "Merge request for Code Review created with success!\n\n".green
   end

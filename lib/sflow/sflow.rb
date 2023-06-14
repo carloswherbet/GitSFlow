@@ -50,46 +50,59 @@ module SFlow
       set_error e
     end
 
-    def self.feature_start(external_id_ref, branch_description)
+    def self.feature_start(external_id_ref, branch_description, parent_branch_name = nil)
       @@bar = bar('Processando ')
       @@bar.start
       2.times do
         sleep(0.2)
         @@bar.advance
       end
-      title = branch_description || external_id_ref
+      parent_issue_id = parent_branch_name.to_s.match(/^(\d*)-/).to_a.last
+      parent_issue_id_formated = "-##{parent_issue_id}" if parent_branch_name
+      title = ''
+      title += "(##{parent_issue_id}) " if parent_branch_name
+      title += branch_description || external_id_ref
+
       issue = GitLab::Issue.new(title:, labels: ['feature'])
       issue.create
-      branch = "#{issue.iid}-feature/#{external_id_ref}"
-      start(branch, issue)
+      branch = "#{issue.iid}-feature/#{external_id_ref}#{parent_issue_id_formated}"
+      start(branch, issue, $GIT_BRANCH_DEVELOP, parent_branch_name)
     end
 
-    def self.bugfix_start(external_id_ref, branch_description)
+    def self.bugfix_start(external_id_ref, branch_description, parent_branch_name = nil)
       @@bar = bar('Processando ')
       @@bar.start
       2.times do
         sleep(0.2)
         @@bar.advance
       end
-      title = branch_description || external_id_ref
+      parent_issue_id = parent_branch_name.to_s.match(/^(\d*)-/).to_a.last
+      parent_issue_id_formated = "-##{parent_issue_id}" if parent_branch_name
+      title = ''
+      title += "(##{parent_issue_id}) " if parent_branch_name
+      title += branch_description || external_id_ref
       issue = GitLab::Issue.new(title:, labels: ['bugfix'])
       issue.create
-      branch = "#{issue.iid}-bugfix/#{external_id_ref}"
-      start(branch, issue)
+      branch = "#{issue.iid}-bugfix/#{external_id_ref}#{parent_issue_id_formated}"
+      start(branch, issue, $GIT_BRANCH_DEVELOP, parent_branch_name)
     end
 
-    def self.hotfix_start(external_id_ref, branch_description)
+    def self.hotfix_start(external_id_ref, branch_description, parent_branch_name = nil)
       @@bar = bar('Processando ')
       @@bar.start
       2.times do
         sleep(0.2)
         @@bar.advance
       end
-      title = branch_description || external_id_ref
+      parent_issue_id = parent_branch_name.to_s.match(/^(\d*)-/).to_a.last
+      parent_issue_id_formated = "-##{parent_issue_id}" if parent_branch_name
+      title = ''
+      title += "(##{parent_issue_id}) " if parent_branch_name
+      title += branch_description || external_id_ref
       issue = GitLab::Issue.new(title:, labels: %w[hotfix production])
       issue.create
-      branch = "#{issue.iid}-hotfix/#{external_id_ref}"
-      start(branch, issue, $GIT_BRANCH_MASTER)
+      branch = "#{issue.iid}-hotfix/#{external_id_ref}#{parent_issue_id_formated}"
+      start(branch, issue, $GIT_BRANCH_MASTER, parent_branch_name)
     end
 
     def self.feature_finish(branch_name)
@@ -491,13 +504,14 @@ module SFlow
       success("#{branch_name} foi finalizada e transferida por #{$GITLAB_NEXT_RELEASE_LIST} com sucesso!")
     end
 
-    def self.start(branch, issue, ref_branch = $GIT_BRANCH_DEVELOP)
+    def self.start(branch, issue, ref_branch = $GIT_BRANCH_DEVELOP, parent_branch_name)
       2.times do
         sleep(0.2)
         @@bar.advance
       end
       Git.checkout ref_branch
-      description = "* ~default_branch #{branch}"
+      description  = "* ~default_branch #{branch}\n"
+      description += "* ~parent #{parent_branch_name}\n" if parent_branch_name
       issue.description = description
       issue.update
       2.times do
@@ -510,7 +524,7 @@ module SFlow
       @@bar.finish
       prompt.say(pastel.cyan("Você está na branch: #{branch}"))
       success("Issue criada com sucesso!\nURL: #{issue.web_url}")
-
+      issue
       # print "\nYou are on branch: #{branch}\n\n".yellow
     end
 

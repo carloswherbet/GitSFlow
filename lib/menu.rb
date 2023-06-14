@@ -1,65 +1,83 @@
-require 'sflow/sflow.rb'
-require 'Git/git.rb'
-require 'GitLab/gitlab.rb'
-require 'tty_integration.rb'
+require 'sflow/sflow'
+require 'Git/git'
+require 'GitLab/gitlab'
+require 'tty_integration'
 class Menu
   include TtyIntegration
 
-  def principal()
+  def principal
     prompt.say("\n")
 
-    result = prompt.select("\O que você gostaria de fazer?", symbols: { marker: ">" }, per_page: 10) do |menu|
-      menu.choice "INICIAR uma nova BRANCH", :start_branch
-      menu.choice "FINALIZAR uma BRANCH", :finish_branch
-      menu.choice "ENVIAR para HOMOLOGAÇÃO", :staging_branch
-      menu.choice "Fazer CODE REVIEW ", :codereview
-      menu.choice "INICIAR uma RELEASE", :release_start
-      menu.choice "FINALIZAR uma RELEASE", :release_finish
-    #  menu.choice "MOVE a Issue", :staging_branch, disabled: '(Coming Soon)'
-    #  menu.choice "List my Issues", :staging_branch, disabled: '(Coming Soon)'
-      menu.choice "Config(.env)", :setup_variables
-    #  menu.choice "Help", 5
-      menu.choice "SAIR", :exit
+    result = prompt.select("\O que você gostaria de fazer?", symbols: { marker: '>' }, per_page: 10) do |menu|
+      menu.choice 'INICIAR uma nova BRANCH', :start_branch
+      menu.choice 'FINALIZAR uma BRANCH', :finish_branch
+      menu.choice 'ENVIAR para HOMOLOGAÇÃO', :staging_branch
+      menu.choice 'Fazer CODE REVIEW ', :codereview
+      menu.choice 'INICIAR uma RELEASE', :release_start
+      menu.choice 'FINALIZAR uma RELEASE', :release_finish
+      #  menu.choice "MOVE a Issue", :staging_branch, disabled: '(Coming Soon)'
+      #  menu.choice "List my Issues", :staging_branch, disabled: '(Coming Soon)'
+      menu.choice 'Config(.env)', :setup_variables
+      #  menu.choice "Help", 5
+      menu.choice 'SAIR', :exit
     end
-    self.send(result)
+    send(result)
   end
-  
-  def setup_variables
 
-    project_name = Git.execute { "git remote -v | head -n1 | awk '{print $2}' | sed -e 's,.*:\(.*/\)\?,,' -e 's/\.git$//'"}
-    file = "#{Dir.home}/.config/gitsflow/#{project_name.gsub("\n","")}/config.yml"
+  def setup_variables
+    project_name = Git.execute do
+      "git remote -v | head -n1 | awk '{print $2}' | sed -e 's,.*:\(.*/\)\?,,' -e 's/\.git$//'"
+    end
+    file = "#{Dir.home}/.config/gitsflow/#{project_name.gsub("\n", '')}/config.yml"
     config = TTY::Config.new
     config.filename = file
 
     begin
       result_env = config.read(file).transform_keys(&:to_sym)
       result = prompt.collect do
-        key(:GITLAB_PROJECT_ID).ask("GITLAB_PROJECT_ID:", required: true, default: result_env[:GITLAB_PROJECT_ID])
-        key(:GITLAB_TOKEN).mask("GITLAB_TOKEN:", required: true, echo: true, default: result_env[:GITLAB_TOKEN])
-        key(:GITLAB_URL_API).ask("GITLAB_URL_API:", required: true, default: result_env[:GITLAB_URL_API] || 'https://gitlab.com/api/v4')
-        key(:GITLAB_EMAIL).ask("GITLAB_EMAIL:", required: true, default: result_env[:GITLAB_EMAIL]) {|q| q.validate(/[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+/, "Invalid email address")}
-        key(:GITLAB_LISTS).ask("GITLAB_LISTS:", required: true, default:  result_env[:GITLAB_LISTS] || 'To Do,Doing,Next Release,Staging')
-        key(:GITLAB_NEXT_RELEASE_LIST).ask("GITLAB_NEXT_RELEASE_LIST:", required: true, default: result_env[:GITLAB_NEXT_RELEASE_LIST] || 'Next Release')
-        key(:GIT_BRANCH_MASTER).ask("GIT_BRANCH_MASTER:", required: true, default: result_env[:GIT_BRANCH_MASTER] || 'master')
-        key(:GIT_BRANCH_DEVELOP).ask("GIT_BRANCH_DEVELOP:", required: true, default: result_env[:GIT_BRANCH_DEVELOP] || 'developer')
-        key(:GIT_BRANCHES_STAGING).ask("GIT_BRANCHES_STAGING:", required: true, default: result_env[:GIT_BRANCHES_STAGING] || 'staging')
-        key(:SFLOW_TEMPLATE_RELEASE).ask("SFLOW_TEMPLATE_RELEASE:", required: true, default:  result_env[:SFLOW_TEMPLATE_RELEASE] || 'Version {version} - {date}')
-        key(:SFLOW_TEMPLATE_RELEASE_DATE_FORMAT).ask("SFLOW_TEMPLATE_RELEASE_DATE_FORMAT:", required: true, default: result_env['SFLOW_TEMPLATE_RELEASE_DATE_FORMAT'] || 'Y/m/d')
+        key(:GITLAB_PROJECT_ID).ask('GITLAB_PROJECT_ID:', required: true, default: result_env[:GITLAB_PROJECT_ID])
+        key(:GITLAB_TOKEN).mask('GITLAB_TOKEN:', required: true, echo: true, default: result_env[:GITLAB_TOKEN])
+        key(:GITLAB_URL_API).ask('GITLAB_URL_API:', required: true, default: result_env[:GITLAB_URL_API] || 'https://gitlab.com/api/v4')
+        key(:GITLAB_EMAIL).ask('GITLAB_EMAIL:', required: true, default: result_env[:GITLAB_EMAIL]) do |q|
+          q.validate(/[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+/, 'Invalid email address')
+        end
+        key(:GITLAB_LISTS).ask('GITLAB_LISTS:', required: true,
+                                                default: result_env[:GITLAB_LISTS] || 'To Do,Doing,Next Release,Staging')
+        key(:GITLAB_NEXT_RELEASE_LIST).ask('GITLAB_NEXT_RELEASE_LIST:', required: true,
+                                                                        default: result_env[:GITLAB_NEXT_RELEASE_LIST] || 'Next Release')
+        key(:GIT_BRANCH_MASTER).ask('GIT_BRANCH_MASTER:', required: true,
+                                                          default: result_env[:GIT_BRANCH_MASTER] || 'master')
+        key(:GIT_BRANCH_DEVELOP).ask('GIT_BRANCH_DEVELOP:', required: true,
+                                                            default: result_env[:GIT_BRANCH_DEVELOP] || 'developer')
+        key(:GIT_BRANCHES_STAGING).ask('GIT_BRANCHES_STAGING:', required: true,
+                                                                default: result_env[:GIT_BRANCHES_STAGING] || 'staging')
+        key(:SFLOW_TEMPLATE_RELEASE).ask('SFLOW_TEMPLATE_RELEASE:', required: true,
+                                                                    default: result_env[:SFLOW_TEMPLATE_RELEASE] || 'Version {version} - {date}')
+        key(:SFLOW_TEMPLATE_RELEASE_DATE_FORMAT).ask('SFLOW_TEMPLATE_RELEASE_DATE_FORMAT:', required: true,
+                                                                                            default: result_env['SFLOW_TEMPLATE_RELEASE_DATE_FORMAT'] || 'Y/m/d')
       end
-    rescue TTY::Config::ReadError => read_error
+    rescue TTY::Config::ReadError => e
       prompt.say(pastel.cyan("\n\nPor favor configure as variáveis .env"))
       result = prompt.collect do
-        key(:GITLAB_PROJECT_ID).ask("GITLAB_PROJECT_ID:", required: true, default: ENV['GITLAB_PROJECT_ID'])
-        key(:GITLAB_TOKEN).mask("GITLAB_TOKEN:", required: true, echo: true, default: ENV['GITLAB_TOKEN'])
-        key(:GITLAB_URL_API).ask("GITLAB_URL_API:", required: true, default: ENV['GITLAB_URL_API'] || 'https://gitlab.com/api/v4')
-        key(:GITLAB_EMAIL).ask("GITLAB_EMAIL:", required: true, default: ENV['GITLAB_EMAIL']) {|q| q.validate(/[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+/, "Invalid email address")}
-        key(:GITLAB_LISTS).ask("GITLAB_LISTS:", required: true, default:  ENV['GITLAB_LISTS'] || 'To Do,Doing,Next Release,Staging')
-        key(:GITLAB_NEXT_RELEASE_LIST).ask("GITLAB_NEXT_RELEASE_LIST:", required: true, default: ENV['GITLAB_NEXT_RELEASE_LIST'] || 'Next Release')
-        key(:GIT_BRANCH_MASTER).ask("GIT_BRANCH_MASTER:", required: true, default: ENV["GIT_BRANCH_MASTER"] || 'master')
-        key(:GIT_BRANCH_DEVELOP).ask("GIT_BRANCH_DEVELOP:", required: true, default: ENV["GIT_BRANCH_DEVELOP"] || 'developer')
-        key(:GIT_BRANCHES_STAGING).ask("GIT_BRANCHES_STAGING:", required: true, default: ENV['GIT_BRANCHES_STAGING'] || 'staging')
-        key(:SFLOW_TEMPLATE_RELEASE).ask("SFLOW_TEMPLATE_RELEASE:", required: true, default:  ENV["SFLOW_TEMPLATE_RELEASE"] || 'Version {version} - {date}')
-        key(:SFLOW_TEMPLATE_RELEASE_DATE_FORMAT).ask("SFLOW_TEMPLATE_RELEASE_DATE_FORMAT:", required: true, default: ENV['SFLOW_TEMPLATE_RELEASE_DATE_FORMAT'] || 'Y/m/d')
+        key(:GITLAB_PROJECT_ID).ask('GITLAB_PROJECT_ID:', required: true, default: ENV['GITLAB_PROJECT_ID'])
+        key(:GITLAB_TOKEN).mask('GITLAB_TOKEN:', required: true, echo: true, default: ENV['GITLAB_TOKEN'])
+        key(:GITLAB_URL_API).ask('GITLAB_URL_API:', required: true, default: ENV['GITLAB_URL_API'] || 'https://gitlab.com/api/v4')
+        key(:GITLAB_EMAIL).ask('GITLAB_EMAIL:', required: true, default: ENV['GITLAB_EMAIL']) do |q|
+          q.validate(/[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+/, 'Invalid email address')
+        end
+        key(:GITLAB_LISTS).ask('GITLAB_LISTS:', required: true,
+                                                default: ENV['GITLAB_LISTS'] || 'To Do,Doing,Next Release,Staging')
+        key(:GITLAB_NEXT_RELEASE_LIST).ask('GITLAB_NEXT_RELEASE_LIST:', required: true,
+                                                                        default: ENV['GITLAB_NEXT_RELEASE_LIST'] || 'Next Release')
+        key(:GIT_BRANCH_MASTER).ask('GIT_BRANCH_MASTER:', required: true, default: ENV['GIT_BRANCH_MASTER'] || 'master')
+        key(:GIT_BRANCH_DEVELOP).ask('GIT_BRANCH_DEVELOP:', required: true,
+                                                            default: ENV['GIT_BRANCH_DEVELOP'] || 'developer')
+        key(:GIT_BRANCHES_STAGING).ask('GIT_BRANCHES_STAGING:', required: true,
+                                                                default: ENV['GIT_BRANCHES_STAGING'] || 'staging')
+        key(:SFLOW_TEMPLATE_RELEASE).ask('SFLOW_TEMPLATE_RELEASE:', required: true,
+                                                                    default: ENV['SFLOW_TEMPLATE_RELEASE'] || 'Version {version} - {date}')
+        key(:SFLOW_TEMPLATE_RELEASE_DATE_FORMAT).ask('SFLOW_TEMPLATE_RELEASE_DATE_FORMAT:', required: true,
+                                                                                            default: ENV['SFLOW_TEMPLATE_RELEASE_DATE_FORMAT'] || 'Y/m/d')
       end
       config.set(:GITLAB_PROJECT_ID, value: result[:GITLAB_PROJECT_ID])
       config.set(:GITLAB_TOKEN, value: result[:GITLAB_TOKEN])
@@ -73,14 +91,12 @@ class Menu
       config.set(:SFLOW_TEMPLATE_RELEASE, value: result[:SFLOW_TEMPLATE_RELEASE])
       config.set(:SFLOW_TEMPLATE_RELEASE_DATE_FORMAT, value: result[:SFLOW_TEMPLATE_RELEASE_DATE_FORMAT])
       config.write(file, force: true, create: true)
-
-      print ("\n")
-      success("Variáveis configuradas com sucesso!\n#{file.gsub(Dir.home, "~")}")
-      if prompt.yes?("Vocẽ gostaria de voltar ao menu principal?")
-        principal()
-      end
-      prompt.say(pastel.cyan("Até logo!"))
     end
+
+    print("\n")
+    success("Variáveis configuradas com sucesso!\n#{file.gsub(Dir.home, '~')}")
+    principal if prompt.yes?('Vocẽ gostaria de voltar ao menu principal?')
+    prompt.say(pastel.cyan('Até logo!'))
 
     GitLab.create_labels
 
@@ -92,12 +108,9 @@ class Menu
     $GITLAB_NEXT_RELEASE_LIST = result[:GITLAB_NEXT_RELEASE_LIST]
     $GIT_BRANCH_MASTER = result[:GIT_BRANCH_MASTER]
     $GIT_BRANCH_DEVELOP = result[:GIT_BRANCH_DEVELOP]
-    $GIT_BRANCHES_STAGING= result[:GIT_BRANCHES_STAGING].split(',')
-    $SFLOW_TEMPLATE_RELEASE= result[:SFLOW_TEMPLATE_RELEASE]
-    $SFLOW_TEMPLATE_RELEASE_DATE_FORMAT= result[:SFLOW_TEMPLATE_RELEASE_DATE_FORMAT]
-
-
-
+    $GIT_BRANCHES_STAGING = result[:GIT_BRANCHES_STAGING].split(',')
+    $SFLOW_TEMPLATE_RELEASE = result[:SFLOW_TEMPLATE_RELEASE]
+    $SFLOW_TEMPLATE_RELEASE_DATE_FORMAT = result[:SFLOW_TEMPLATE_RELEASE_DATE_FORMAT]
   end
 
   private
@@ -112,13 +125,13 @@ class Menu
   end
 
   def release_finish
-    result = choice_branch_release()
+    result = choice_branch_release
 
     SFlow::SFlow.send(:release_finish, result[:branch_name])
   end
 
   def exit
-    return 0
+    0
   end
 
   def staging_branch
@@ -132,65 +145,95 @@ class Menu
   end
 
   def start_branch
-    action =  prompt.select("Selecione o tipo de Branch:", symbols: { marker: ">" }) do |menu|
-      menu.choice "Feature", :feature_start
-      menu.choice "Bugfix", :bugfix_start
-      menu.choice "Hotfix", :hotfix_start
+    action = prompt.select('Selecione o tipo de Branch:', symbols: { marker: '>' }) do |menu|
+      menu.choice 'Feature', :feature_start
+      menu.choice 'Bugfix', :bugfix_start
+      menu.choice 'Hotfix', :hotfix_start
     end
+    parent_branch_name = nil
+    if prompt.yes? 'Essa branch possui alguma branch pai ou epic?'
+
+      # branchs_list = Git.execute { "git branch -r --format='%(refname)' --sort=-committerdate" }
+      branchs_list = Git.execute { "git ls-remote --heads --refs  | awk '{print $2}'" }
+      branchs_list = branchs_list.gsub('refs/heads/',
+                                       '').split("\n") - ($GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER,
+                                                                                   $GIT_BRANCH_DEVELOP])
+      branchs_list.unshift('Não encontrei na lista, quero criar uma nova branch')
+      parent_branch_name = prompt.select('Selecione a Branch PAI:', branchs_list, symbols: { marker: '>' },
+                                                                                  filter: true)
+      if parent_branch_name == 'Não encontrei na lista, quero criar uma nova branch'
+
+        prompt.say("\n")
+        prompt.say(pastel.cyan("Ok, vamos seguir com o cadastro da branch Pai\n"))
+        result_parent_branch = prompt.collect do
+          key(:parent_external_id_ref).ask(
+            'Digite o código de identificação da Branch Pai, EX: [JiraIssueKey, TicketOtrsID]:', required: true
+          )
+          key(:parent_branch_description).ask('Descrição da branch Pai:', required: false)
+        end
+        parent_issue = SFlow::SFlow.send(action, result_parent_branch[:parent_external_id_ref].strip,
+                                         result_parent_branch[:parent_branch_description].strip)
+        parent_branch_name =  parent_issue.description.strip.gsub('* ~default_branch ', '')
+      end
+    end
+    prompt.say("\n")
+    prompt.say(pastel.cyan("Agora, entre com as informações da branch de trabalho \n"))
 
     result = prompt.collect do
-      key(:external_id_ref).ask("Código de identificação da Branch, EX: [JiraIssueId, TicketOtrsID]:", required: true)
-      key(:branch_description).ask("Descrição da branch:", required: true)
+      key(:external_id_ref).ask('Digite o código de identificação da Branch, EX: [JiraIssueKey, TicketOtrsID]:',
+                                required: true)
+      key(:branch_description).ask('Descrição da branch:', required: true)
     end
 
-    SFlow::SFlow.send(action, result[:external_id_ref].strip, result[:branch_description].strip)
+    SFlow::SFlow.send(action, result[:external_id_ref].strip, result[:branch_description].strip, parent_branch_name)
   end
 
   def choice_branch_release
-
-    branchs_list =  Git.execute { "git branch -r --format='%(refname)' --sort=-committerdate  | grep release" }
-    branchs_list = branchs_list.gsub('refs/remotes/origin/','').split("\n") - ($GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER, $GIT_BRANCH_DEVELOP])
-    branch_name = prompt.select("Selecione a Branch:", branchs_list ,symbols: { marker: ">" }, filter: true)
-    return {
+    branchs_list = Git.execute { "git ls-remote --heads --refs  | awk '{print $2}'  | grep release" }
+    branchs_list = branchs_list.gsub('refs/remotes/origin/',
+                                     '').split("\n") - ($GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER,
+                                                                                 $GIT_BRANCH_DEVELOP])
+    branch_name = prompt.select('Selecione a Branch:', branchs_list, symbols: { marker: '>' }, filter: true)
+    {
       branch_name: branch_name.delete("\n")
     }
   end
 
-  def choice_branch type
+  def choice_branch(type)
     action = ''
-    current_branch = Git.execute { "git branch --show-current" }
-    branch_origin = prompt.select("Confirme a branch:", symbols: { marker: ">" }) do |menu|
+    current_branch = Git.execute { 'git branch --show-current' }
+    branch_origin = prompt.select('Confirme a branch:', symbols: { marker: '>' }) do |menu|
       menu.choice "#{current_branch}(Atual)", :current
-      menu.choice "Outra", :other_branch
+      menu.choice 'Outra', :other_branch
     end
 
     case branch_origin
-      when :current
-        if current_branch.match(/\-feature\//)
-          action = "feature_#{type}"
-        elsif current_branch.match(/\-bugfix\//)
-          action = "bugfix_#{type}"
-        elsif current_branch.match(/\-hotfix\//)
-          action = "hotfix_#{type}"
-        end
-        branch_name = current_branch.delete("\n")
-      when :other_branch
-        branchs_list =  Git.execute { "git branch -r --format='%(refname)' --sort=-committerdate" }
-        branchs_list = branchs_list.gsub('refs/remotes/origin/','').split("\n") - ($GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER, $GIT_BRANCH_DEVELOP])
-        branch_name = prompt.select("Selecione a Branch:", branchs_list ,symbols: { marker: ">" }, filter: true)
-        if branch_name.match(/\-feature\//)
-          action = "feature_#{type}"
-        elsif branch_name.match(/\-bugfix\//)
-          action = "bugfix_#{type}"
-        elsif branch_name.match(/\-hotfix\//)
-          action = "hotfix_#{type}"
-        end
+    when :current
+      if current_branch.match(%r{-feature/})
+        action = "feature_#{type}"
+      elsif current_branch.match(%r{-bugfix/})
+        action = "bugfix_#{type}"
+      elsif current_branch.match(%r{-hotfix/})
+        action = "hotfix_#{type}"
+      end
+      branch_name = current_branch.delete("\n")
+    when :other_branch
+      branchs_list = Git.execute { "git ls-remote --heads --refs  | awk '{print $2}'" }
+      branchs_list = branchs_list.gsub('refs/remotes/origin/',
+                                       '').split("\n") - ($GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER,
+                                                                                   $GIT_BRANCH_DEVELOP])
+      branch_name = prompt.select('Selecione a Branch:', branchs_list, symbols: { marker: '>' }, filter: true)
+      if branch_name.match(%r{-feature/})
+        action = "feature_#{type}"
+      elsif branch_name.match(%r{-bugfix/})
+        action = "bugfix_#{type}"
+      elsif branch_name.match(%r{-hotfix/})
+        action = "hotfix_#{type}"
+      end
     end
-    return {
-      action: action,
+    {
+      action:,
       branch_name: branch_name.delete("\n")
     }
   end
-
-
 end
