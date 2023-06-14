@@ -81,6 +81,15 @@ class GitLab::Issue
     issue.set_data issue_json
   end
 
+  def self.find_by_id(id)
+    url = "projects/#{$GITLAB_PROJECT_ID}/issues?iids[]=#{id}"
+    issue_json = GitLab.request_get(url)[0]
+    raise "Issue not found #{search.keys[0]}" unless issue_json
+
+    issue = GitLab::Issue.new
+    issue.set_data issue_json
+  end
+
   def self.find_by_branch(branch)
     url = "projects/#{$GITLAB_PROJECT_ID}/issues?search='~default_branch #{branch}'"
     issue_json = GitLab.request_get(URI::Generic::DEFAULT_PARSER.escape(url))[0]

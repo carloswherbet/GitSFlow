@@ -396,7 +396,8 @@ module SFlow
       branch = !branch_name ? Git.execute { 'git branch --show-current' } : branch_name
       branch.delete!("\n")
       log_messages = Git.log_last_changes branch
-      issue = GitLab::Issue.find_by_branch branch
+      issue_id = branch_name.to_s.match(/^(\d*)-/).to_a.last
+      issue = GitLab::Issue.find_by_id issue_id
       Git.push branch
       if log_messages != ''
         print "Send messages commit for issue\n".yellow
@@ -459,8 +460,10 @@ module SFlow
       # Git.fetch ref_branch
       # Git.checkout ref_branch
       # Git.pull ref_branch
+
       source_branch = branch_name
-      issue = GitLab::Issue.find_by_branch(source_branch)
+      issue_id = branch_name.to_s.match(/^(\d*)-/).to_a.last
+      issue = GitLab::Issue.find_by_id issue_id
       2.times do
         sleep(0.2)
         @@bar.advance
@@ -531,7 +534,8 @@ module SFlow
     def self.codereview(branch_name)
       Git.checkout $GIT_BRANCH_DEVELOP
       source_branch = branch_name
-      issue = GitLab::Issue.find_by_branch(source_branch)
+      issue_id = branch_name.to_s.match(/^(\d*)-/).to_a.last
+      issue = GitLab::Issue.find_by_id issue_id
       # issue.move
       mr = GitLab::MergeRequest.new(
         source_branch:,
@@ -545,7 +549,9 @@ module SFlow
 
     def self.staging(branch_name)
       branch = branch_name
-      issue = GitLab::Issue.find_by_branch(branch)
+      issue_id = branch_name.to_s.match(/^(\d*)-/).to_a.last
+      issue = GitLab::Issue.find_by_id(issue_id)
+
       prompt.say(pastel.cyan("\nVamos lá!"))
       target_branch = prompt.select("\nEscolha a branch de homologação:", $GIT_BRANCHES_STAGING,
                                     symbols: { marker: '>' }, filter: true)
@@ -553,7 +559,7 @@ module SFlow
       options = []
       options << { name: 'Limpar primeiro a branch e depois fazer o merge', value: :clear }
       options << { name: 'Somente fazer o merge', value: :only_merge }
-      option_merge = prompt.select("\nO que deseja fazer?:", options, symbols: { marker: '>' }, filter: true)
+      option_merge = prompt.select("\nO que deseja fazer?", options, symbols: { marker: '>' }, filter: true)
       @@bar = bar('Realizando merge da branch em homologação')
       @@bar.start
       2.times do
