@@ -17,7 +17,7 @@ class Menu
       menu.choice 'FINALIZAR uma RELEASE', :release_finish
       #  menu.choice "MOVE a Issue", :staging_branch, disabled: '(Coming Soon)'
       #  menu.choice "List my Issues", :staging_branch, disabled: '(Coming Soon)'
-      menu.choice 'Config(.env)', :setup_variables
+      menu.choice 'Configurar', :setup_variables
       #  menu.choice "Help", 5
       menu.choice 'SAIR', :exit
     end
@@ -33,7 +33,7 @@ class Menu
     config = TTY::Config.new
     config.filename = file
     prompt.say("\n")
-    box = TTY::Box.frame align: :left, width: TTY::Screen.width, height: 12,
+    box = TTY::Box.frame align: :left, width: TTY::Screen.width, height: 15,
                          title: { top_left: pastel.green('Olá, seja bem-vindo!') } do
       pastel.green("\nVamos configurar o GitSFlow agora.\n\n") +
         pastel.white("Essa informação será salva dentro da pasta home do seu usuário. Você não precisará mais do .env
@@ -75,7 +75,7 @@ class Menu
           q.validate(/[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+/, 'Invalid email address')
         end
         key(:GITLAB_LISTS).ask('GITLAB_LISTS:', required: true,
-                                                default: ENV['GITLAB_LISTS'] || 'To Do,Doing,Next Release,Staging')
+                                                default: ENV['GITLAB_LISTS'] || 'To Do,Doing,Staging,Next Release')
         key(:GITLAB_NEXT_RELEASE_LIST).ask('GITLAB_NEXT_RELEASE_LIST:', required: true,
                                                                         default: ENV['GITLAB_NEXT_RELEASE_LIST'] || 'Next Release')
         key(:GIT_BRANCH_MASTER).ask('GIT_BRANCH_MASTER:', required: true, default: ENV['GIT_BRANCH_MASTER'] || 'master')
@@ -102,15 +102,9 @@ class Menu
       config.write(file, force: true, create: true)
     end
 
-    print("\n")
-    success('Variáveis configuradas com sucesso!')
     prompt.say(pastel.cyan("\n"))
     prompt.say(pastel.cyan(file.gsub(Dir.home, '~')))
     prompt.say(pastel.cyan("\n\n"))
-    principal if prompt.yes?('Vocẽ gostaria de voltar ao menu principal?')
-    prompt.say(pastel.cyan('Até logo!'))
-
-    GitLab.create_labels
 
     $GITLAB_PROJECT_ID = result[:GITLAB_PROJECT_ID]
     $GITLAB_TOKEN = result[:GITLAB_TOKEN]
@@ -123,6 +117,14 @@ class Menu
     $GIT_BRANCHES_STAGING = result[:GIT_BRANCHES_STAGING].split(',')
     $SFLOW_TEMPLATE_RELEASE = result[:SFLOW_TEMPLATE_RELEASE]
     $SFLOW_TEMPLATE_RELEASE_DATE_FORMAT = result[:SFLOW_TEMPLATE_RELEASE_DATE_FORMAT]
+
+    GitLab.create_labels
+    GitLab.create_board_lists
+
+    success('GitSFlow coonfigurado com sucesso!')
+
+    principal if prompt.yes?('Vocẽ gostaria de voltar ao menu principal?')
+    prompt.say(pastel.cyan('Até logo!'))
   end
 
   private

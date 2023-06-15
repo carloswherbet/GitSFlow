@@ -437,9 +437,31 @@ module SFlow
         branchs_validations = $GIT_BRANCHES_STAGING + [$GIT_BRANCH_MASTER, $GIT_BRANCH_DEVELOP]
         Git.exist_branch?(branchs_validations.join(' '))
       rescue StandardError => e
-        @@bar.stop
-        raise "Você precisar criar as branchs: #{branchs_validations.join(', ')}"
-        # Menu.new.setup_variables()
+        Git.checkout($GIT_BRANCH_MASTER)
+
+        begin
+          Git.new_branch($GIT_BRANCH_DEVELOP)
+        rescue StandardError
+          nil
+        end
+        begin
+          Git.push($GIT_BRANCH_DEVELOP)
+        rescue StandardError
+          nil
+        end
+
+        $GIT_BRANCHES_STAGING.each do |staging|
+          begin
+            Git.new_branch(staging)
+          rescue StandardError
+            nil
+          end
+          begin
+            Git.push(staging)
+          rescue StandardError
+            nil
+          end
+        end
       end
       2.times do
         # sleep(0.1)

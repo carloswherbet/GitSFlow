@@ -55,6 +55,33 @@ module GitLab
     raise 'Unauthorized. Check GITLAB_TOKEN and file .env'
   end
 
+  def self.get_boards
+    gitlab_boards = request_get("projects/#{$GITLAB_PROJECT_ID}/boards")
+  end
+
+  def self.get_board_gitsflow
+    boards = get_boards
+    boards.detect { |i| i['name'] == 'GitSFlow' }
+  end
+
+  def self.create_board_lists
+    board_gitsflow = get_board_gitsflow
+    return if board_gitsflow
+
+    # Create Board
+    request_post("projects/#{$GITLAB_PROJECT_ID}/boards", { name: 'GitSFlow' })
+
+    board_gitsflow = get_board_gitsflow
+
+    gitlab_labels = request_get("projects/#{$GITLAB_PROJECT_ID}/labels")
+
+    # Create lists
+    $GITLAB_LISTS.each do |list|
+      label = gitlab_labels.detect { |i| i['name'] == list }
+      request_post("projects/#{$GITLAB_PROJECT_ID}/boards/#{board_gitsflow['id']}/lists", { label_id: label['id'] })
+    end
+  end
+
   def self.create_labels
     url = "projects/#{$GITLAB_PROJECT_ID}/labels"
     params = [
@@ -68,10 +95,16 @@ module GitLab
       { name: 'changelog', color: '#0033CC' },
       { name: 'Staging', color: '#FAD8C7' },
       { name: 'tasks', color: '#F0AD4E' },
-      { name: 'parent', color: '#34495E' }
+      { name: 'parent', color: '#34495E' },
+      { name: 'To Do', color: '#009966' },
+      { name: 'Doing', color: '#ed9121' }
     ]
     $GIT_BRANCHES_STAGING.each do |staging|
       params << { name: staging, color: '#FAD8C7' }
+    end
+
+    $GITLAB_LISTS.each do |list|
+      params << { name: list, color: '#FAD8C7' }
     end
 
     params << { name: $GITLAB_NEXT_RELEASE_LIST, color: '#34495E' }
