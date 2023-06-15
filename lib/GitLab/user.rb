@@ -7,7 +7,7 @@ class GitLab::User
   end
 
   def self.me
-    user = GitLab.request_get("projects/#{$GITLAB_PROJECT_ID}/users?email=#{$GITLAB_EMAIL}")[0]
+    user = GitLab.request_get('user')
     return user if user
 
     raise "Quem é você? \nNão consegui localizar seu usuário no gitlab,\nTente novamente mais tarde ou verifique o arquivos de configuração."
