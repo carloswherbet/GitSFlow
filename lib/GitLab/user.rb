@@ -1,3 +1,4 @@
+require 'tty_integration'
 class GitLab::User
   attr_accessor :id, :email, :name
 
@@ -6,15 +7,14 @@ class GitLab::User
   end
 
   def self.me
-    user = GitLab.request_get('user')
-
+    user = GitLab.request_get("projects/#{$GITLAB_PROJECT_ID}/users?email=#{$GITLAB_EMAIL}")[0]
     return user if user
 
-    raise "Who are you?! \nVerify your data em .env"
+    raise "Quem é você? \nNão consegui localizar seu usuário no gitlab,\nTente novamente mais tarde ou verifique o arquivos de configuração."
   end
 
   def self.all
-    GitLab.request_get("projects/#{$GITLAB_PROJECT_ID}/users")
+    GitLab.request_get("projects/#{$GITLAB_PROJECT_ID}/users?per_page=100")
   end
 
   def to_s; end

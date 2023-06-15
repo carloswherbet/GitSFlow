@@ -1,17 +1,35 @@
 begin
   require 'dotenv'
   Dotenv.load(File.join( Dir.pwd, ".env"))
-  rescue LoadError
+rescue LoadError
   # Gem loads as it should
 end
-$GITLAB_PROJECT_ID = ENV['GITLAB_PROJECT_ID']
-$GITLAB_TOKEN = ENV['GITLAB_TOKEN']
-$GITLAB_URL_API = ENV['GITLAB_URL_API']
-$GITLAB_EMAIL = ENV['GITLAB_EMAIL'].to_s.empty? ? Open3.popen3("git config --local user.email") { |i, o| o.read }.chomp : ENV['GITLAB_EMAIL']
-$GITLAB_LISTS = ENV['GITLAB_LISTS'].split(',') rescue nil
-$GITLAB_NEXT_RELEASE_LIST = ENV['GITLAB_NEXT_RELEASE_LIST']
-$GIT_BRANCH_MASTER= ENV["GIT_BRANCH_MASTER"]
-$GIT_BRANCH_DEVELOP= ENV["GIT_BRANCH_DEVELOP"]
-$GIT_BRANCHES_STAGING= ENV["GIT_BRANCHES_STAGING"].split(',') rescue nil
-$SFLOW_TEMPLATE_RELEASE= ENV["SFLOW_TEMPLATE_RELEASE"].to_s.empty? ? "Release version {version} - {date}" : ENV["SFLOW_TEMPLATE_RELEASE"]
-$SFLOW_TEMPLATE_RELEASE_DATE_FORMAT= ENV['SFLOW_TEMPLATE_RELEASE_DATE_FORMAT'].to_s.empty? ? 'Y/m/d': ENV['SFLOW_TEMPLATE_RELEASE_DATE_FORMAT'] 
+
+require 'tty_integration.rb'
+module Config
+  extend TtyIntegration
+  def self.init
+    project_name = cmd.run!("git remote -v | head -n1 | awk '{print $2}' | sed -e 's,.*:\(.*/\)\?,,' -e 's/\.git$//'").out
+    file = "#{Dir.home}/.config/gitsflow/#{project_name.gsub("\n","")}/config.yml"
+    config = TTY::Config.new
+    config.filename = file
+
+    begin
+      result = config.read(file).transform_keys(&:to_sym)   
+      $GITLAB_PROJECT_ID = result[:GITLAB_PROJECT_ID]
+      $GITLAB_TOKEN = result[:GITLAB_TOKEN]
+      $GITLAB_URL_API = result[:GITLAB_URL_API]
+      $GITLAB_EMAIL = result[:GITLAB_EMAIL]
+      $GITLAB_LISTS = result[:GITLAB_LISTS].split(',')
+      $GITLAB_NEXT_RELEASE_LIST = result[:GITLAB_NEXT_RELEASE_LIST]
+      $GIT_BRANCH_MASTER = result[:GIT_BRANCH_MASTER]
+      $GIT_BRANCH_DEVELOP = result[:GIT_BRANCH_DEVELOP]
+      $GIT_BRANCHES_STAGING= result[:GIT_BRANCHES_STAGING].split(',')
+      $SFLOW_TEMPLATE_RELEASE= result[:SFLOW_TEMPLATE_RELEASE]
+      $SFLOW_TEMPLATE_RELEASE_DATE_FORMAT= result[:SFLOW_TEMPLATE_RELEASE_DATE_FORMAT]
+
+    rescue => e
+
+    end
+  end
+end

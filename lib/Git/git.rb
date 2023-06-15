@@ -1,24 +1,28 @@
+require 'tty_integration.rb'
 module Git
+  extend TtyIntegration
+
   def self.checkout(branch, options = :with_fetch)
     fetch(branch) if options == :with_fetch
-    print "checkout: ".yellow
-    print "#{branch}\n\n".green
+    # prompt.say(pastel.yellow("[checkout] ") + pastel.green(branch))
     execute {"git checkout #{branch}"}
-    self.pull branch
+    self.pull branch  if options == :with_fetch
   end
   
   def self.merge from, to
     # self.checkout(from)
     checkout(to, :local)
-    print "Merge ".yellow
-    print "#{from} ".green
-    print "into ".yellow
-    print "#{to} \n\n".green
-    processs, stderr , stdout= Open3.popen3("git pull origin #{from}") do |i, o, stderr, wait_thr|
-      [wait_thr.value, stderr.read, o.read] 
-    end
-    if processs.success?
-      return stdout
+    # prompt.say(pastel.yellow('[Merge] '))
+    # prompt.say(pastel.green("#{from} "))
+    # prompt.say(pastel.yellow("into "))
+    # prompt.say(pastel.green("#{to} \n\n"))
+    result = cmd.run!("git pull origin #{from}")
+
+    # processs, stderr , stdout= Open3.popen3("git pull origin #{from}") do |i, o, stderr, wait_thr|
+    #   [wait_thr.value, stderr.read, o.read] 
+    # end
+    if result.success?
+      return result.out
     else
       print "Conflicts on merge!".yellow.bg_red
       print "\n\nResolve conflicts and commit. \n"
@@ -32,7 +36,7 @@ module Git
         print "Continuing...\n\n"
       else
         print "Aborting merge...\n\n"
-        system ('git merge --abort')
+        execute { ('git merge --abort') }
         raise 'Aborting...'
       end
 
@@ -42,69 +46,65 @@ module Git
   end
 
   def self.delete_branch branch
-    print "Delete branch: ".yellow
-    print "#{branch} \n\n".green
-    system("git checkout develop && git branch -D #{branch}")
+    # print "Delete branch: ".yellow
+    # print "#{branch} \n\n".green
+    execute {("git checkout develop && git branch -D #{branch}") }
   end
 
   def self.reset_hard from, to
     self.fetch from
     self.checkout(to)
-    print "Reset --hard:  #{to} is equal: ".yellow
-    print "origin/#{from}\n".green
-    system "git reset --hard origin/#{from}\n\n"
+    # print "Reset --hard:  #{to} is equal: ".yellow
+    # print "origin/#{from}\n".green
+    execute { "git reset --hard origin/#{from}\n\n" }
   end
   
   def self.push branch
-    print "Push: ".yellow
-    print "#{branch}\n\n".green
+    # prompt.say(pastel.yellow('[Push]: '))
+    # prompt.say(pastel.green("#{branch}\n\n"))
     execute {"git push origin #{branch}"}
   end
 
   def self.push_force branch
-    print "Push --force: ".yellow
-    print "#{branch}\n\n".green
+    # print "Push --force: ".yellow
+    # print "#{branch}\n\n".green
     execute {"git push origin #{branch} -f"}
   end
 
   def self.log_last_changes branch
-    execute {"git log origin/#{branch}..HEAD --oneline --format='%ad - %B'"}
+    execute {%{git log origin/#{branch}..HEAD --oneline --format="%ad - %B}}
   end
 
   def self.pull branch
-    print "Pull: ".yellow
-    print "#{branch}\n\n".green
-    system "git pull origin #{branch}"
+    # prompt.say(pastel.yellow('[Pull]: '))
+    # prompt.say(pastel.yellow("#{branch}\n\n"))
+    execute { "git pull origin #{branch}" }
   end
 
   def self.fetch branch
-    print "Fetch: ".yellow
-    print "origin/#{branch}\n\n".green
-    system "git fetch origin #{branch}"
+    # prompt.say(pastel.yellow('[Fetch]: '))
+    # prompt.say(pastel.yellow("origin/#{branch}\n\n"))
+    execute { "git fetch origin #{branch}" }
   end
 
   def self.new_branch branch
-    print "Create new branch: ".yellow
-    print "#{branch}\n".green
-    system  "git checkout -b #{branch}"
+    # prompt.say(pastel.yellow('Create new branch: '))
+    # prompt.say(pastel.green( "#{branch}\n"))
+    execute {  "git checkout -b #{branch}" }
   end
 
 
   def self.exist_branch? branch
     execute {"git fetch origin #{branch}"}
-
   end
-    
 
   private
 
   def self.execute
-    processs, stderr , stdout= Open3.popen3(yield) do |i, o, stderr, wait_thr|
-      [wait_thr.value, stderr.read, o.read] 
-    end
-    if processs.success?
-      return stdout
-    end
-    raise "#{stderr}"
+
+    result= cmd.run!(yield)
+
+    raise result.err if result.failed?
+    return result.out
   end
 end
