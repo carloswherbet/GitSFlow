@@ -244,7 +244,7 @@ class Menu
       end
     end
     {
-      action:,
+      action: action,
       branch_name: branch_name.delete("\n")
     }
   end

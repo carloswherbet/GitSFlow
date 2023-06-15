@@ -1,4 +1,4 @@
-# !/usr/bin/ruby
+#!/usr/bin/ruby
 begin
   require 'pry'
 rescue LoadError
@@ -63,7 +63,7 @@ module SFlow
       title += "(##{parent_issue_id}) " if parent_branch_name
       title += branch_description || external_id_ref
 
-      issue = GitLab::Issue.new(title:, labels: ['feature'])
+      issue = GitLab::Issue.new(title: title, labels: ['feature'])
       issue.create
       branch = "#{issue.iid}-feature/#{external_id_ref}#{parent_issue_id_formated}"
       start(branch, issue, $GIT_BRANCH_DEVELOP, parent_branch_name)
@@ -81,7 +81,7 @@ module SFlow
       title = ''
       title += "(##{parent_issue_id}) " if parent_branch_name
       title += branch_description || external_id_ref
-      issue = GitLab::Issue.new(title:, labels: ['bugfix'])
+      issue = GitLab::Issue.new(title: title, labels: ['bugfix'])
       issue.create
       branch = "#{issue.iid}-bugfix/#{external_id_ref}#{parent_issue_id_formated}"
       start(branch, issue, $GIT_BRANCH_DEVELOP, parent_branch_name)
@@ -99,7 +99,7 @@ module SFlow
       title = ''
       title += "(##{parent_issue_id}) " if parent_branch_name
       title += branch_description || external_id_ref
-      issue = GitLab::Issue.new(title:, labels: %w[hotfix production])
+      issue = GitLab::Issue.new(title: title, labels: %w[hotfix production])
       issue.create
       branch = "#{issue.iid}-hotfix/#{external_id_ref}#{parent_issue_id_formated}"
       start(branch, issue, $GIT_BRANCH_MASTER, parent_branch_name)
@@ -365,7 +365,7 @@ module SFlow
         issue_iid: issue_release.iid,
         title: "Reintegration release #{version}: #{issue_release.branch} into #{$GIT_BRANCH_MASTER}",
         description: "Closes ##{issue_release.iid}",
-        type:
+        type: type
       )
       mr_master.create
 
@@ -570,7 +570,7 @@ module SFlow
       issue = GitLab::Issue.find_by_id issue_id
       # issue.move
       mr = GitLab::MergeRequest.new(
-        source_branch:,
+        source_branch: source_branch,
         target_branch: $GIT_BRANCH_DEVELOP,
         issue_iid: issue.iid
       )

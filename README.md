@@ -46,34 +46,11 @@ SFLOW_TEMPLATE_RELEASE_DATE_FORMAT=Y/m/d
 ## Usage
 
 For help:
-
-    $ git sflow help
-    or
-    $ sflow help 
-
-List of commands:
-1. git sflow feature start FEATURE DESCRIPTION 
-2. git sflow feature [reintegration|finish] FEATURE_BRANCH
-3. git sflow feature codereview BRANCH
-4. git sflow feature staging SOURCE_BRANCH
-5. git sflow bugfix start BUGFIX DESCRIPTION
-6. git sflow bugfix [reintegration|finish] BUGFIX_BRANCH
-7. git sflow bugfix codereview BUGFIX_BRANCH
-8. git sflow bugfix staging BUGFIX_BRANCH
-9. git sflow hotfix start HOTFIX DESCRIPTION
-10. git sflow hotfix [reintegration|finish] HOTFIX_BRANCH
-11. git sflow hotfix staging HOTFIX_BRANCH
-12. git sflow release start RELEASE
-13. git sflow release finish RELEASE
-14. git sflow push origin BRANCH or git sflow push
-
-
-
+```bash
+ sflow
+```
 ## Uninstall
-    $ git sflow uninstall
-    or 
-    $ sflow uninstall
-
+   gem uninstall gitsflow
 
 ## Get a GitLab Token
 

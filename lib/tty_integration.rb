@@ -36,7 +36,15 @@ module TtyIntegration
     print TTY::Box.error(message, border: :light)
   end
 
-  def green = pastel.on_green(' ')
-  def red = pastel.on_red(' ')
-  def yellow = pastel.on_yellow(' ')
+  def green
+    pastel.on_green(' ')
+  end
+
+  def red
+    pastel.on_red(' ')
+  end
+
+  def yellow
+    pastel.on_yellow(' ')
+  end
 end
