@@ -1,6 +1,6 @@
 [![Gem Version](https://badge.fury.io/rb/gitsflow.svg)](https://badge.fury.io/rb/gitsflow)
 [![Build Status](https://travis-ci.org/carloswherbet/GitSFlow.svg?branch=master)](https://travis-ci.org/carloswherbet/GitSFlow)
-# GitSFlow
+# GitSFlow 0.8.0
 GitSFlow is a tool that integrate Git custom commands with GitLab and it's inspired GitFlow
 ## Installation
 
