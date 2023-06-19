@@ -78,7 +78,7 @@ module GitLab
     # Create lists
     $GITLAB_LISTS.each do |list|
       label = gitlab_labels.detect { |i| i['name'] == list }
-      request_post("projects/#{$GITLAB_PROJECT_ID}/boards/#{board_gitsflow['id']}/lists", { label_id: label['id'] })
+      request_post("projects/#{$GITLAB_PROJECT_ID}/boards/#{board_gitsflow['id']}/lists", { label_id: label['id'] }) if label
     end
   end
 
