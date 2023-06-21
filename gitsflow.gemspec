@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.date          = '2020-03-20'
   s.bindir        = 'bin'
   s.homepage      = 'https://github.com/carloswherbet/GitSFlow'
-  s.summary       = "GitSFlow is a tool that integrate Git custom commands with GitLab and it's inspired GitFlow"
+  s.summary       = 'GitSFlow is a Gitlab-integrated tool that contains a workflow model inspired by Git FLOW.'
   s.authors       = ['Carlos Wherbet']
   s.email         = 'carloswherbet@gmail.com'
   s.required_ruby_version = Gem::Requirement.new('>= 2.7.0')
