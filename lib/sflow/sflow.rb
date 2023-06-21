@@ -348,12 +348,11 @@ module SFlow
     end
 
     def self.release_finish(branch_name)
-      version = branch_name
+      version = branch_name.gsub(/(.*)\//, '')
 
       new_labels = []
 
-      release_branch = "-release/#{version}"
-      issue_release = GitLab::Issue.find_by_branch(release_branch)
+      issue_release = GitLab::Issue.find_by_branch(branch_name)
 
       Git.merge issue_release.branch, $GIT_BRANCH_DEVELOP
       Git.push $GIT_BRANCH_DEVELOP
