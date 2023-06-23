@@ -85,8 +85,8 @@ class GitLab::MergeRequest
     @obj_gitlab = GitLab.request_post(url, {
                                         source_branch: @source_branch,
                                         target_branch: @target_branch,
-                                        title:,
-                                        description:,
+                                        title: title,
+                                        description: description,
                                         labels: @labels,
                                         assignee_id: GitLab::User.me['id'].to_i,
                                         reviewer_ids: [assignee_id.to_i]
