@@ -574,8 +574,9 @@ module SFlow
         sleep(0.2)
         @@bar.advance
       end
-      Git.new_branch branch
-      Git.push branch
+      Git.new_branch(branch)
+      Git.pull(parent_branch_name) unless parent_branch_name.empty?
+      Git.push(branch)
 
       @@bar.finish
       prompt.say(pastel.cyan("Você está na branch: #{branch}"))
