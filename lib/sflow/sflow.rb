@@ -575,7 +575,7 @@ module SFlow
         @@bar.advance
       end
       Git.new_branch(branch)
-      Git.pull(parent_branch_name) unless parent_branch_name.empty?
+      Git.pull(parent_branch_name) unless parent_branch_name.nil?
       Git.push(branch)
 
       @@bar.finish
